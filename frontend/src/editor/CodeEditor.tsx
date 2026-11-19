@@ -1,11 +1,11 @@
 import { useImperativeHandle, forwardRef, useMemo, useRef } from 'react';
 import CodeMirror from '@uiw/react-codemirror';
 import type { ReactCodeMirrorRef } from '@uiw/react-codemirror';
-import { oneDark } from '@codemirror/theme-one-dark';
-import { EditorView, keymap } from '@codemirror/view';
+import { keymap } from '@codemirror/view';
 import { miniLangLanguage } from './minilang-syntax';
 import { createErrorLinter } from './linter';
-import type { ErrorItem } from '../types';
+import { getEditorThemeExtension } from './themes';
+import type { ErrorItem, ThemeId } from '../types';
 
 export interface CodeEditorRef {
   goToLine: (line: number, column?: number) => void;
@@ -18,49 +18,23 @@ interface CodeEditorProps {
   errors?: ErrorItem[];
   readOnly?: boolean;
   onRunShortcut?: () => void;
+  theme?: ThemeId;
+  onCursorChange?: (line: number, column: number) => void;
 }
 
-const customEditorTheme = EditorView.theme({
-  '&': {
-    height: '100%',
-    fontSize: '14px',
-    backgroundColor: '#0f141c',
-  },
-  '.cm-scroller': {
-    fontFamily: "'JetBrains Mono', 'Fira Code', Consolas, monospace",
-    lineHeight: '1.6',
-  },
-  '.cm-gutters': {
-    backgroundColor: '#0b0f17',
-    color: '#4b5563',
-    borderRight: '1px solid #1f293d',
-    paddingRight: '6px',
-  },
-  '.cm-activeLineGutter': {
-    backgroundColor: '#1a2436',
-    color: '#93c5fd',
-  },
-  '.cm-activeLine': {
-    backgroundColor: 'rgba(30, 41, 59, 0.4)',
-  },
-  '.cm-cursor': {
-    borderLeftColor: '#38bdf8',
-    borderLeftWidth: '2px',
-  },
-  '.cm-selectionBackground, ::selection': {
-    backgroundColor: 'rgba(56, 189, 248, 0.25) !important',
-  },
-  '.cm-tooltip-lint': {
-    backgroundColor: '#1e293b',
-    border: '1px solid #ef4444',
-    color: '#f8fafc',
-    borderRadius: '4px',
-    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.4)',
-  },
-});
-
 export const CodeEditor = forwardRef<CodeEditorRef, CodeEditorProps>(
-  ({ value, onChange, errors = [], readOnly = false, onRunShortcut }, ref) => {
+  (
+    {
+      value,
+      onChange,
+      errors = [],
+      readOnly = false,
+      onRunShortcut,
+      theme = 'arceus',
+      onCursorChange,
+    },
+    ref
+  ) => {
     const cmRef = useRef<ReactCodeMirrorRef>(null);
 
     useImperativeHandle(ref, () => ({
@@ -87,8 +61,7 @@ export const CodeEditor = forwardRef<CodeEditorRef, CodeEditorProps>(
     const extensions = useMemo(() => {
       const ext = [
         miniLangLanguage,
-        oneDark,
-        customEditorTheme,
+        ...getEditorThemeExtension(theme),
         createErrorLinter(errors),
       ];
 
@@ -114,7 +87,7 @@ export const CodeEditor = forwardRef<CodeEditorRef, CodeEditorProps>(
       }
 
       return ext;
-    }, [errors, onRunShortcut]);
+    }, [theme, errors, onRunShortcut]);
 
     return (
       <div className="h-full w-full overflow-hidden">
@@ -126,6 +99,14 @@ export const CodeEditor = forwardRef<CodeEditorRef, CodeEditorProps>(
           extensions={extensions}
           onChange={onChange}
           readOnly={readOnly}
+          onUpdate={(viewUpdate) => {
+            if (onCursorChange && viewUpdate.selectionSet) {
+              const head = viewUpdate.state.selection.main.head;
+              const line = viewUpdate.state.doc.lineAt(head);
+              const col = head - line.from + 1;
+              onCursorChange(line.number, col);
+            }
+          }}
           basicSetup={{
             lineNumbers: true,
             highlightActiveLineGutter: true,

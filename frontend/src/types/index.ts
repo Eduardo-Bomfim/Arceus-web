@@ -69,3 +69,16 @@ export interface ExampleTemplate {
   category: "Básico" | "Extensões" | "Otimização" | "Erros";
   code: string;
 }
+
+export type ThemeId = 'arceus' | 'void' | 'dialga' | 'giratina';
+
+export interface ThemeConfig {
+  id: ThemeId;
+  name: string;
+  subtitle: string;
+  primaryColor: string;
+  secondaryColor: string;
+  accentBg: string;
+  borderAccent: string;
+  description: string;
+}
