@@ -8,10 +8,12 @@ import {
   FolderOpen,
   ChevronDown,
   Activity,
-  Layers,
+  Palette,
+  Check,
 } from 'lucide-react';
 import type { HealthStatus, RunnerStatus } from '../types';
 import { EXAMPLES } from '../examples';
+import { useTheme, THEMES } from '../context/ThemeContext';
 
 interface TopbarProps {
   status: RunnerStatus;
@@ -27,6 +29,48 @@ interface TopbarProps {
   isAnalyzing: boolean;
 }
 
+// Ícone SVG personalizado do Anel Sagrado da Criação de Arceus
+function ArceusRingIcon({ className = 'w-4 h-4' }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+    >
+      {/* Círculo da Roda */}
+      <circle
+        cx="12"
+        cy="12"
+        r="9"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeDasharray="4 2"
+      />
+      {/* Arco de ouro interior */}
+      <circle
+        cx="12"
+        cy="12"
+        r="6.5"
+        stroke="currentColor"
+        strokeWidth="1.5"
+      />
+      {/* 4 Pontas da Cruz da Criação */}
+      <line x1="12" y1="2" x2="12" y2="7" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+      <line x1="12" y1="17" x2="12" y2="22" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+      <line x1="2" y1="12" x2="7" y2="12" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+      <line x1="17" y1="12" x2="22" y2="12" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+      {/* Gemas Esmeralda nas junções */}
+      <circle cx="12" cy="7" r="1.5" fill="#10b981" />
+      <circle cx="12" cy="17" r="1.5" fill="#10b981" />
+      <circle cx="7" cy="12" r="1.5" fill="#10b981" />
+      <circle cx="17" cy="12" r="1.5" fill="#10b981" />
+      {/* Núcleo de Criação */}
+      <circle cx="12" cy="12" r="2" fill="#f59e0b" />
+    </svg>
+  );
+}
+
 export function Topbar({
   status,
   optimize,
@@ -40,16 +84,24 @@ export function Topbar({
   health,
   isAnalyzing,
 }: TopbarProps) {
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [examplesOpen, setExamplesOpen] = useState(false);
+  const [themesOpen, setThemesOpen] = useState(false);
+
+  const examplesRef = useRef<HTMLDivElement>(null);
+  const themesRef = useRef<HTMLDivElement>(null);
+
+  const { theme, themeConfig, setTheme } = useTheme();
 
   const isRunning = status === 'RUNNING' || status === 'WAITING_INPUT' || status === 'CONNECTING';
 
-  // Fecha dropdown ao clicar fora
+  // Fecha dropdowns ao clicar fora
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setDropdownOpen(false);
+      if (examplesRef.current && !examplesRef.current.contains(event.target as Node)) {
+        setExamplesOpen(false);
+      }
+      if (themesRef.current && !themesRef.current.contains(event.target as Node)) {
+        setThemesOpen(false);
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
@@ -57,17 +109,34 @@ export function Topbar({
   }, []);
 
   return (
-    <header className="flex flex-wrap items-center justify-between px-4 py-2 bg-[#0c1017] border-b border-[#1e293b] select-none gap-2 z-20">
+    <header className="flex flex-wrap items-center justify-between px-3.5 py-2 bg-[var(--bg-header)] border-b border-[var(--border-color)] select-none gap-2 z-20 transition-colors">
       {/* Lado Esquerdo: Brand + Controles Primários */}
       <div className="flex items-center gap-3">
-        {/* Logo / Título */}
-        <div className="flex items-center gap-2 mr-2">
-          <div className="p-1.5 rounded-lg bg-gradient-to-tr from-sky-500 to-indigo-600 text-white shadow-md shadow-sky-500/20">
-            <Layers className="w-4 h-4" />
+        {/* Brand / Logo com o Anel de Arceus */}
+        <div className="flex items-center gap-2 mr-1 group cursor-default">
+          <div
+            className="p-1.5 rounded-lg text-amber-300 shadow-md transition-all duration-300 group-hover:scale-105"
+            style={{
+              backgroundColor: themeConfig.accentBg,
+              border: `1px solid ${themeConfig.primaryColor}55`,
+              boxShadow: `0 0 14px ${themeConfig.primaryColor}33`,
+            }}
+          >
+            <ArceusRingIcon className="w-5 h-5 animate-[spin_20s_linear_infinite]" />
           </div>
           <div>
-            <h1 className="font-bold text-sm tracking-tight text-white flex items-center gap-1.5">
-              Arceus <span className="text-[11px] font-normal text-sky-400 bg-sky-950/60 px-1.5 py-0.2 rounded border border-sky-800/40">MiniLang</span>
+            <h1 className="font-bold text-sm tracking-tight text-[var(--text-main)] flex items-center gap-1.5">
+              <span>Arceus</span>
+              <span
+                className="text-[10px] font-semibold px-1.5 py-0.2 rounded border"
+                style={{
+                  backgroundColor: themeConfig.accentBg,
+                  color: themeConfig.primaryColor,
+                  borderColor: `${themeConfig.primaryColor}44`,
+                }}
+              >
+                MiniLang IDE
+              </span>
             </h1>
           </div>
         </div>
@@ -77,11 +146,15 @@ export function Topbar({
           <button
             onClick={onRun}
             title="Executar Programa (F9 ou Ctrl+Enter)"
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs transition shadow-sm shadow-emerald-950 active:scale-95"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md font-semibold text-xs transition shadow-sm active:scale-95 text-white"
+            style={{
+              backgroundColor: themeConfig.primaryColor,
+              boxShadow: `0 0 12px ${themeConfig.primaryColor}44`,
+            }}
           >
             <Play className="w-3.5 h-3.5 fill-current" />
             <span>Executar</span>
-            <kbd className="hidden sm:inline-block ml-1 px-1 rounded bg-emerald-700/60 text-[10px] text-emerald-200">
+            <kbd className="hidden sm:inline-block ml-1 px-1 rounded bg-black/25 text-[10px] text-white/90">
               F9
             </kbd>
           </button>
@@ -89,74 +162,137 @@ export function Topbar({
           <button
             onClick={onAbort}
             title="Interromper Execução (Esc)"
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-md bg-rose-600 hover:bg-rose-500 text-white font-semibold text-xs transition shadow-sm shadow-rose-950 active:scale-95 animate-pulse"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-rose-600 hover:bg-rose-500 text-white font-semibold text-xs transition shadow-sm shadow-rose-950 active:scale-95 animate-pulse"
           >
             <Square className="w-3.5 h-3.5 fill-current" />
             <span>Parar</span>
           </button>
         )}
 
-        {/* Botão Analisar (apenas estático) */}
+        {/* Botão Analisar */}
         <button
           onClick={onAnalyze}
           disabled={isRunning || isAnalyzing}
           title="Executa apenas a validação estática de tipos, AST e tabela de símbolos"
-          className="flex items-center gap-1 px-2.5 py-1.5 rounded-md bg-[#182232] hover:bg-[#223044] text-slate-300 text-xs transition border border-[#263750] disabled:opacity-50"
+          className="flex items-center gap-1 px-2.5 py-1.5 rounded-md bg-[var(--bg-surface)] hover:bg-[var(--bg-subtle)] text-[var(--text-main)] text-xs transition border border-[var(--border-color)] disabled:opacity-50"
         >
-          <SearchCode className="w-3.5 h-3.5 text-sky-400" />
+          <SearchCode className="w-3.5 h-3.5" style={{ color: themeConfig.primaryColor }} />
           <span className="hidden sm:inline">Analisar</span>
         </button>
 
-        {/* Switch de Constant Folding */}
-        <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-300 hover:text-white transition px-2 py-1 rounded bg-[#131b27] border border-[#202c3e]">
+        {/* Switch de Constant Folding (--opt) */}
+        <label className="flex items-center gap-2 cursor-pointer text-xs text-[var(--text-main)] transition px-2 py-1 rounded bg-[var(--bg-surface)] border border-[var(--border-color)]">
           <input
             type="checkbox"
             checked={optimize}
             onChange={(e) => onToggleOptimize(e.target.checked)}
             className="sr-only peer"
           />
-          <div className="w-7 h-4 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-indigo-600 relative"></div>
-          <span className="flex items-center gap-1 text-[11px] font-medium text-slate-300">
-            <Sparkles className="w-3 h-3 text-indigo-400" />
+          <div
+            className="w-7 h-4 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all relative"
+            style={
+              optimize
+                ? { backgroundColor: themeConfig.primaryColor }
+                : undefined
+            }
+          />
+          <span className="flex items-center gap-1 text-[11px] font-medium text-[var(--text-main)]">
+            <Sparkles className="w-3 h-3 text-amber-400" />
             <span className="hidden md:inline">Constant Folding</span> (--opt)
           </span>
         </label>
       </div>
 
-      {/* Lado Direito: Exemplos, Arquivos e Status da API */}
+      {/* Lado Direito: Seletor de Temas, Exemplos, Arquivos e Status da API */}
       <div className="flex items-center gap-2">
-        {/* Dropdown de Exemplos */}
-        <div className="relative" ref={dropdownRef}>
+        {/* Seletor de Temas */}
+        <div className="relative" ref={themesRef}>
           <button
-            onClick={() => setDropdownOpen(!dropdownOpen)}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-[#182232] hover:bg-[#223044] text-slate-200 text-xs transition border border-[#263750]"
+            onClick={() => setThemesOpen(!themesOpen)}
+            title="Escolher Tema Visual da IDE"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-[var(--bg-surface)] hover:bg-[var(--bg-subtle)] text-[var(--text-main)] text-xs transition border border-[var(--border-color)]"
           >
-            <span>Exemplos Prontos</span>
-            <ChevronDown className="w-3 h-3 text-slate-400" />
+            <Palette className="w-3.5 h-3.5" style={{ color: themeConfig.primaryColor }} />
+            <span className="hidden sm:inline font-medium">{themeConfig.name}</span>
+            <ChevronDown className="w-3 h-3 text-[var(--text-muted)]" />
           </button>
 
-          {dropdownOpen && (
-            <div className="absolute right-0 mt-1.5 w-72 rounded-lg bg-[#111827] border border-[#263750] shadow-xl shadow-black/80 py-1.5 z-50 divide-y divide-[#1e293b]">
-              <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                Templates da MiniLang
+          {themesOpen && (
+            <div className="absolute right-0 mt-1.5 w-64 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-color)] shadow-2xl shadow-black/80 py-1.5 z-50 divide-y divide-[var(--border-color)]">
+              <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] flex items-center justify-between">
+                <span>Temas Pokémon & Dark</span>
+                <span className="text-[9px] text-amber-400">Arceus Web</span>
               </div>
               <div className="py-1">
+                {THEMES.map((th) => (
+                  <button
+                    key={th.id}
+                    onClick={() => {
+                      setTheme(th.id);
+                      setThemesOpen(false);
+                    }}
+                    className={`w-full text-left px-3 py-2 transition flex items-center justify-between group ${
+                      theme === th.id
+                        ? 'bg-[var(--bg-active-tab)]'
+                        : 'hover:bg-[var(--bg-subtle)]'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div
+                        className="w-3.5 h-3.5 rounded-full border border-white/20 shadow-sm flex items-center justify-center shrink-0"
+                        style={{ backgroundColor: th.primaryColor }}
+                      />
+                      <div className="flex flex-col">
+                        <span className="text-xs font-semibold text-[var(--text-main)] group-hover:text-white transition">
+                          {th.name}
+                        </span>
+                        <span className="text-[10px] text-[var(--text-muted)]">
+                          {th.subtitle}
+                        </span>
+                      </div>
+                    </div>
+                    {theme === th.id && (
+                      <Check className="w-3.5 h-3.5" style={{ color: th.primaryColor }} />
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Dropdown de Exemplos */}
+        <div className="relative" ref={examplesRef}>
+          <button
+            onClick={() => setExamplesOpen(!examplesOpen)}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-[var(--bg-surface)] hover:bg-[var(--bg-subtle)] text-[var(--text-main)] text-xs transition border border-[var(--border-color)]"
+          >
+            <span>Exemplos</span>
+            <ChevronDown className="w-3 h-3 text-[var(--text-muted)]" />
+          </button>
+
+          {examplesOpen && (
+            <div className="absolute right-0 mt-1.5 w-72 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-color)] shadow-2xl shadow-black/80 py-1.5 z-50 divide-y divide-[var(--border-color)]">
+              <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
+                Templates da MiniLang
+              </div>
+              <div className="py-1 max-h-80 overflow-y-auto">
                 {EXAMPLES.map((ex) => (
                   <button
                     key={ex.id}
                     onClick={() => {
                       onSelectExample(ex.code);
-                      setDropdownOpen(false);
+                      setExamplesOpen(false);
                     }}
-                    className="w-full text-left px-3 py-2 hover:bg-[#1a2538] transition flex flex-col group"
+                    className="w-full text-left px-3 py-2 hover:bg-[var(--bg-subtle)] transition flex flex-col group"
                   >
-                    <span className="text-xs font-semibold text-slate-200 group-hover:text-sky-400 transition flex items-center justify-between">
+                    <span className="text-xs font-semibold text-[var(--text-main)] group-hover:text-amber-400 transition flex items-center justify-between">
                       {ex.title}
-                      <span className="text-[10px] font-normal text-slate-500 bg-[#162030] px-1.5 rounded">
+                      <span className="text-[10px] font-normal text-[var(--text-muted)] bg-[var(--bg-panel)] px-1.5 rounded">
                         {ex.category}
                       </span>
                     </span>
-                    <span className="text-[11px] text-slate-400 truncate mt-0.5">
+                    <span className="text-[11px] text-[var(--text-muted)] truncate mt-0.5">
                       {ex.description}
                     </span>
                   </button>
@@ -166,26 +302,26 @@ export function Topbar({
           )}
         </div>
 
-        {/* Botão Abrir arquivo local */}
+        {/* Botão Abrir arquivo */}
         <button
           onClick={onOpenFile}
           title="Abrir arquivo MiniLang (.ml) do seu computador"
-          className="p-1.5 rounded-md bg-[#182232] hover:bg-[#223044] text-slate-300 transition border border-[#263750]"
+          className="p-1.5 rounded-md bg-[var(--bg-surface)] hover:bg-[var(--bg-subtle)] text-[var(--text-muted)] hover:text-white transition border border-[var(--border-color)]"
         >
           <FolderOpen className="w-3.5 h-3.5" />
         </button>
 
-        {/* Botão Baixar arquivo fonte */}
+        {/* Botão Baixar arquivo */}
         <button
           onClick={onDownloadFile}
           title="Baixar código fonte (.ml)"
-          className="p-1.5 rounded-md bg-[#182232] hover:bg-[#223044] text-slate-300 transition border border-[#263750]"
+          className="p-1.5 rounded-md bg-[var(--bg-surface)] hover:bg-[var(--bg-subtle)] text-[var(--text-muted)] hover:text-white transition border border-[var(--border-color)]"
         >
           <Download className="w-3.5 h-3.5" />
         </button>
 
-        {/* Badge de Status do Render / Backend */}
-        <div className="pl-2 border-l border-[#1e293b]">
+        {/* Badge de Status da API */}
+        <div className="pl-2 border-l border-[var(--border-color)]">
           {health.state === 'online' && (
             <div
               className="flex items-center gap-1.5 px-2 py-1 rounded bg-emerald-950/40 text-emerald-400 border border-emerald-800/40 text-[11px]"
