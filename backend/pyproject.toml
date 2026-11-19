@@ -1,0 +1,27 @@
+[project]
+name = "backend"
+version = "0.1.0"
+description = "Arceus Web API — Backend REST e WebSocket para a Web IDE MiniLang"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "arceus",
+    "fastapi>=0.165.0",
+    "pydantic>=2.14.4",
+    "uvicorn[standard]>=0.54.0",
+    "websockets>=17.4",
+]
+
+[tool.uv.sources]
+arceus = { git = "https://github.com/Eduardo-Bomfim/Arceus.git", rev = "main" }
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+    "pytest>=9.2.0",
+]
+
+[tool.pytest.ini_options]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+]
