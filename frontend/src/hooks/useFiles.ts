@@ -84,10 +84,20 @@ export function useFiles() {
     setActiveFileId(id);
   }, []);
 
+  const sanitizeProgName = (fileName: string) => {
+    const base = fileName.replace(/\.ml$/i, '').replace(/[^a-zA-Z0-9_]/g, '_');
+    return base || 'principal';
+  };
+
   const createFile = useCallback((customName?: string, customContent?: string) => {
     const id = `file_${Date.now()}`;
-    const name = customName || `novo_arquivo_${files.length + 1}.ml`;
-    const content = customContent || `# Novo Programa MiniLang\nprograma exemplo {\n  var x inteiro;\n  x = 10;\n  escreva x;\n} fim.\n`;
+    const name = customName || `arquivo_${files.length + 1}.ml`;
+    const progName = sanitizeProgName(name);
+    // Sintaxe padrão mínima como em qualquer outra linguagem (ex: C, Java, etc.)
+    const content =
+      customContent !== undefined
+        ? customContent
+        : `programa ${progName} {\n    \n} fim.\n`;
 
     const newFile: EditorFile = { id, name, content };
     setFiles((prev) => [...prev, newFile]);

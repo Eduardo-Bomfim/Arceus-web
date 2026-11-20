@@ -103,11 +103,12 @@ export const CodeEditor = forwardRef<CodeEditorRef, CodeEditorProps>(
     }, [theme, errors, onRunShortcut, enableMinimap]);
 
     return (
-      <div className="h-full w-full overflow-hidden">
+      <div className="h-full w-full overflow-hidden bg-[var(--bg-surface)] flex flex-col">
         <CodeMirror
           ref={cmRef}
           value={value}
           height="100%"
+          className="h-full w-full flex-1"
           theme="dark"
           extensions={extensions}
           onChange={onChange}

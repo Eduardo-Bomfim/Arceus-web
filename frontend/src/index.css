@@ -117,3 +117,31 @@ body {
 .arceus-aura-glow {
   box-shadow: 0 0 20px var(--accent-glow);
 }
+
+/* ==========================================
+   CODEMIRROR FULL HEIGHT & SEAMLESS BACKGROUND (INTELLIJ STYLE)
+   ========================================== */
+.cm-theme,
+.cm-editor {
+  height: 100% !important;
+  min-height: 100% !important;
+  background-color: var(--bg-surface) !important;
+}
+
+.cm-scroller {
+  height: 100% !important;
+  min-height: 100% !important;
+  overflow: auto !important;
+  font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace !important;
+}
+
+.cm-gutters {
+  min-height: 100% !important;
+  height: 100% !important;
+  background-color: var(--bg-header) !important;
+  border-right: 1px solid var(--border-color) !important;
+}
+
+.cm-content {
+  min-height: 100% !important;
+}
