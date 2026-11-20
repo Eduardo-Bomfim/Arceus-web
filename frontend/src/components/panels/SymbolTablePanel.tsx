@@ -1,12 +1,16 @@
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Search, Database } from 'lucide-react';
 import type { SymbolInfo } from '../../types';
 
 interface SymbolTablePanelProps {
   symbols: SymbolInfo[];
+  isLoading?: boolean;
 }
 
-export function SymbolTablePanel({ symbols }: SymbolTablePanelProps) {
+export const SymbolTablePanel = React.memo(function SymbolTablePanel({
+  symbols,
+  isLoading,
+}: SymbolTablePanelProps) {
   const [filter, setFilter] = useState('');
   const [scopeFilter, setScopeFilter] = useState<string>('all');
 
@@ -25,20 +29,29 @@ export function SymbolTablePanel({ symbols }: SymbolTablePanelProps) {
     });
   }, [symbols, filter, scopeFilter]);
 
+  if (isLoading) {
+    return (
+      <div className="flex flex-col h-full items-center justify-center p-8 space-y-3">
+        <div className="w-8 h-8 rounded-full border-2 border-cyan-400 border-t-transparent animate-spin" />
+        <span className="text-xs text-slate-400">Construindo tabela de símbolos...</span>
+      </div>
+    );
+  }
+
   if (symbols.length === 0) {
     return (
-      <div className="flex h-full items-center justify-center text-slate-500 italic p-6 text-sm text-center">
+      <div className="flex h-full items-center justify-center text-slate-500 italic p-6 text-xs text-center">
         Nenhum símbolo declarado ou análise não executada. Clique em "Analisar" ou execute o programa.
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-full bg-[#0b0f17] text-slate-300 font-mono text-xs overflow-hidden">
+    <div className="flex flex-col h-full bg-[var(--bg-panel)] text-[var(--text-main)] font-mono text-xs overflow-hidden select-text">
       {/* Barra de filtros */}
-      <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 bg-[#0f1520] border-b border-[#1e293b]">
+      <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 bg-[var(--bg-header)] border-b border-[var(--border-color)] select-none">
         <div className="flex items-center gap-2">
-          <Database className="w-3.5 h-3.5 text-sky-400" />
+          <Database className="w-3.5 h-3.5 text-cyan-400" />
           <span className="font-semibold text-slate-200">
             Tabela de Símbolos ({symbols.length})
           </span>
@@ -50,7 +63,7 @@ export function SymbolTablePanel({ symbols }: SymbolTablePanelProps) {
             <select
               value={scopeFilter}
               onChange={(e) => setScopeFilter(e.target.value)}
-              className="bg-[#182232] border border-[#283850] rounded px-2 py-1 text-slate-200 outline-none text-[11px]"
+              className="bg-[var(--bg-surface)] border border-[var(--border-color)] rounded px-2 py-1 text-slate-200 outline-none text-[11px]"
             >
               <option value="all">Todos os Escopos</option>
               {uniqueScopes.map((scope) => (
@@ -69,7 +82,7 @@ export function SymbolTablePanel({ symbols }: SymbolTablePanelProps) {
               placeholder="Filtrar por nome/tipo..."
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
-              className="bg-[#182232] border border-[#283850] rounded pl-7 pr-2 py-1 text-slate-200 placeholder-slate-500 outline-none text-[11px] w-44"
+              className="bg-[var(--bg-surface)] border border-[var(--border-color)] rounded pl-7 pr-2 py-1 text-slate-200 placeholder-slate-500 outline-none text-[11px] w-44"
             />
           </div>
         </div>
@@ -78,7 +91,7 @@ export function SymbolTablePanel({ symbols }: SymbolTablePanelProps) {
       {/* Tabela de símbolos */}
       <div className="flex-1 overflow-auto">
         <table className="w-full text-left border-collapse">
-          <thead className="bg-[#121926] text-slate-400 sticky top-0 border-b border-[#1e293b] select-none text-[11px]">
+          <thead className="bg-[var(--bg-surface)] text-slate-400 sticky top-0 border-b border-[var(--border-color)] select-none text-[11px]">
             <tr>
               <th className="py-2 px-3">Nome</th>
               <th className="py-2 px-3">Tipo</th>
@@ -87,9 +100,9 @@ export function SymbolTablePanel({ symbols }: SymbolTablePanelProps) {
               <th className="py-2 px-3">Inicializada?</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-[#1e293b]">
+          <tbody className="divide-y divide-[var(--border-color)]">
             {filteredSymbols.map((sym, idx) => (
-              <tr key={idx} className="hover:bg-[#131d2e] transition">
+              <tr key={idx} className="hover:bg-[var(--bg-surface)] transition">
                 <td className="py-2 px-3 font-semibold text-sky-300">{sym.name}</td>
                 <td className="py-2 px-3">
                   <span
@@ -124,4 +137,4 @@ export function SymbolTablePanel({ symbols }: SymbolTablePanelProps) {
       </div>
     </div>
   );
-}
+});
