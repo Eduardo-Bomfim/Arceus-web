@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { ThemeConfig, ThemeId } from '../types';
+import { updateDynamicFavicon } from '../utils/favicon';
 
 export const THEMES: ThemeConfig[] = [
   {
@@ -78,6 +79,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
+    updateDynamicFavicon(theme);
   }, [theme]);
 
   const themeConfig = THEMES.find((t) => t.id === theme) || THEMES[0];
