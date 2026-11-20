@@ -40,6 +40,13 @@ export interface RunResponse {
   duration_ms: number;
 }
 
+export interface TerminalMessage {
+  id: string;
+  type: 'stdout' | 'stdin' | 'system' | 'error';
+  content: string;
+  timestamp: Date;
+}
+
 export type RunnerStatus =
   | "IDLE"
   | "CONNECTING"
