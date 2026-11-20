@@ -10,6 +10,8 @@ import {
   Activity,
   Palette,
   Check,
+  Share2,
+  Command,
 } from 'lucide-react';
 import type { HealthStatus, RunnerStatus } from '../types';
 import { EXAMPLES } from '../examples';
@@ -25,6 +27,8 @@ interface TopbarProps {
   onSelectExample: (code: string) => void;
   onOpenFile: () => void;
   onDownloadFile: () => void;
+  onShare?: () => void;
+  onOpenCommandPalette?: () => void;
   health: HealthStatus;
   isAnalyzing: boolean;
 }
@@ -81,6 +85,8 @@ export function Topbar({
   onSelectExample,
   onOpenFile,
   onDownloadFile,
+  onShare,
+  onOpenCommandPalette,
   health,
   isAnalyzing,
 }: TopbarProps) {
@@ -196,9 +202,14 @@ export function Topbar({
                 : undefined
             }
           />
-          <span className="flex items-center gap-1 text-[11px] font-medium text-[var(--text-main)]">
+          <span className="flex items-center gap-1.5 text-[11px] font-medium text-[var(--text-main)]">
             <Sparkles className="w-3 h-3 text-amber-400" />
             <span className="hidden md:inline">Constant Folding</span> (--opt)
+            {optimize && (
+              <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 animate-pulse">
+                ATIVO
+              </span>
+            )}
           </span>
         </label>
       </div>
@@ -301,6 +312,32 @@ export function Topbar({
             </div>
           )}
         </div>
+
+        {/* Botão Paleta de Comandos */}
+        {onOpenCommandPalette && (
+          <button
+            onClick={onOpenCommandPalette}
+            title="Paleta de Comandos (Ctrl+Shift+P ou Ctrl+K)"
+            className="flex items-center gap-1.5 px-2 py-1.5 rounded-md bg-[var(--bg-surface)] hover:bg-[var(--bg-subtle)] text-[var(--text-muted)] hover:text-white transition border border-[var(--border-color)] text-xs"
+          >
+            <Command className="w-3.5 h-3.5" />
+            <kbd className="hidden lg:inline text-[10px] bg-black/30 px-1 py-0.5 rounded text-[var(--text-muted)]">
+              ⌘K
+            </kbd>
+          </button>
+        )}
+
+        {/* Botão Compartilhar */}
+        {onShare && (
+          <button
+            onClick={onShare}
+            title="Compartilhar código via link URL codificado"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-[var(--bg-surface)] hover:bg-[var(--bg-subtle)] text-[var(--text-main)] hover:text-white transition border border-[var(--border-color)] text-xs"
+          >
+            <Share2 className="w-3.5 h-3.5 text-amber-400" />
+            <span className="hidden sm:inline">Compartilhar</span>
+          </button>
+        )}
 
         {/* Botão Abrir arquivo */}
         <button

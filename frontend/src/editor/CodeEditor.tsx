@@ -2,6 +2,7 @@ import { useImperativeHandle, forwardRef, useMemo, useRef } from 'react';
 import CodeMirror from '@uiw/react-codemirror';
 import type { ReactCodeMirrorRef } from '@uiw/react-codemirror';
 import { keymap } from '@codemirror/view';
+import { showMinimap } from '@replit/codemirror-minimap';
 import { miniLangLanguage } from './minilang-syntax';
 import { createErrorLinter } from './linter';
 import { getEditorThemeExtension } from './themes';
@@ -20,6 +21,7 @@ interface CodeEditorProps {
   onRunShortcut?: () => void;
   theme?: ThemeId;
   onCursorChange?: (line: number, column: number) => void;
+  showMinimap?: boolean;
 }
 
 export const CodeEditor = forwardRef<CodeEditorRef, CodeEditorProps>(
@@ -32,6 +34,7 @@ export const CodeEditor = forwardRef<CodeEditorRef, CodeEditorProps>(
       onRunShortcut,
       theme = 'arceus',
       onCursorChange,
+      showMinimap: enableMinimap = true,
     },
     ref
   ) => {
@@ -65,6 +68,16 @@ export const CodeEditor = forwardRef<CodeEditorRef, CodeEditorProps>(
         createErrorLinter(errors),
       ];
 
+      if (enableMinimap) {
+        ext.push(
+          showMinimap.compute(['doc'], () => ({
+            create: () => ({ dom: document.createElement('div') }),
+            displayText: 'blocks',
+            showOverlay: 'always',
+          }))
+        );
+      }
+
       if (onRunShortcut) {
         ext.push(
           keymap.of([
@@ -87,7 +100,7 @@ export const CodeEditor = forwardRef<CodeEditorRef, CodeEditorProps>(
       }
 
       return ext;
-    }, [theme, errors, onRunShortcut]);
+    }, [theme, errors, onRunShortcut, enableMinimap]);
 
     return (
       <div className="h-full w-full overflow-hidden">
