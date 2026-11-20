@@ -1,12 +1,4 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import {
-  Terminal as TerminalIcon,
-  AlertOctagon,
-  GitCompare,
-  Database,
-  Binary,
-  Network,
-} from 'lucide-react';
 import { Group, Panel, Separator } from 'react-resizable-panels';
 
 import { CodeEditor } from './editor/CodeEditor';
@@ -15,6 +7,10 @@ import { Topbar } from './components/Topbar';
 import { Terminal } from './components/Terminal';
 import { StatusBar } from './components/StatusBar';
 import { EditorTabs } from './components/EditorTabs';
+import { ActivityBar } from './components/ActivityBar';
+import { ProjectSidebar } from './components/ProjectSidebar';
+import { ToolWindowHeader } from './components/ToolWindowHeader';
+import { BottomToolStripe } from './components/BottomToolStripe';
 import { CommandPalette } from './components/CommandPalette';
 import { AstPanel } from './components/panels/AstPanel';
 import { SymbolTablePanel } from './components/panels/SymbolTablePanel';
@@ -31,7 +27,7 @@ import { downloadFile, openLocalFile } from './utils/file-utils';
 import { getSharedCode, generateShareUrl } from './utils/share';
 
 function IdeWorkspace() {
-  const { theme, themeConfig } = useTheme();
+  const { theme } = useTheme();
   const { showToast } = useToast();
   const { activeTab, setActiveTab } = useTabs('console');
   const {
@@ -45,6 +41,21 @@ function IdeWorkspace() {
     renameFile,
     loadExternalFile,
   } = useFiles();
+
+  // Layout states estilo IntelliJ IDEA
+  const [panelPosition, setPanelPosition] = useState<'bottom' | 'right'>(() => {
+    try {
+      const saved = localStorage.getItem('arceus_panel_position');
+      if (saved === 'right' || saved === 'bottom') return saved;
+    } catch {
+      // ignore
+    }
+    return 'bottom'; // Padrão: console/problemas na parte inferior do arquivo
+  });
+
+  const [isToolWindowVisible, setIsToolWindowVisible] = useState(true);
+  const [isToolWindowMaximized, setIsToolWindowMaximized] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   const [optimize, setOptimize] = useState(false);
   const [showMinimap, setShowMinimap] = useState(true);
@@ -104,6 +115,7 @@ function IdeWorkspace() {
   const handleRun = useCallback(() => {
     if (!activeFile) return;
     setActiveTab('console');
+    setIsToolWindowVisible(true);
     runProgram(activeFile.content, optimize);
   }, [activeFile, optimize, runProgram, setActiveTab]);
 
@@ -117,6 +129,7 @@ function IdeWorkspace() {
     } else {
       setActiveTab('ast');
     }
+    setIsToolWindowVisible(true);
   }, [activeFile, optimize, runAnalysis, setActiveTab]);
 
   // Select example
@@ -182,11 +195,53 @@ function IdeWorkspace() {
     editorRef.current?.goToLine(line, column);
   };
 
-  // Keyboard shortcuts
+  // Alternador de Posição do Painel (Abaixo vs Direita)
+  const handleTogglePanelPosition = () => {
+    const next = panelPosition === 'bottom' ? 'right' : 'bottom';
+    setPanelPosition(next);
+    try {
+      localStorage.setItem('arceus_panel_position', next);
+    } catch {
+      // ignore
+    }
+    showToast(
+      next === 'bottom'
+        ? 'Painel reposicionado na parte inferior (abaixo do editor)'
+        : 'Painel reposicionado na lateral direita',
+      'info'
+    );
+  };
+
+  // Atalhos de teclado globais estilo IntelliJ IDEA
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      // Command palette: Ctrl+Shift+P or Ctrl+K
-      if (
+      // Alt+1: Alternar painel de Projeto
+      if (e.altKey && e.key === '1') {
+        e.preventDefault();
+        setSidebarOpen((prev) => !prev);
+      }
+      // Alt+4: Alternar Terminal / Console
+      else if (e.altKey && e.key === '4') {
+        e.preventDefault();
+        if (activeTab === 'console' && isToolWindowVisible) {
+          setIsToolWindowVisible(false);
+        } else {
+          setActiveTab('console');
+          setIsToolWindowVisible(true);
+        }
+      }
+      // Alt+6: Alternar Problemas
+      else if (e.altKey && e.key === '6') {
+        e.preventDefault();
+        if (activeTab === 'problems' && isToolWindowVisible) {
+          setIsToolWindowVisible(false);
+        } else {
+          setActiveTab('problems');
+          setIsToolWindowVisible(true);
+        }
+      }
+      // Paleta de Comandos: Ctrl+Shift+P ou Ctrl+K
+      else if (
         (e.ctrlKey && e.shiftKey && (e.key === 'P' || e.key === 'p')) ||
         (e.ctrlKey && (e.key === 'k' || e.key === 'K'))
       ) {
@@ -212,24 +267,15 @@ function IdeWorkspace() {
 
     window.addEventListener('keydown', handleGlobalKeyDown);
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
-  }, [handleRun, status, abortExecution, isPaletteOpen, clearConsole]);
+  }, [handleRun, status, abortExecution, isPaletteOpen, clearConsole, activeTab, isToolWindowVisible, setActiveTab]);
 
   const activeContent = activeFile?.content ?? '';
   const lineCount = activeContent.split('\n').length;
   const charCount = activeContent.length;
 
-  // Restore layout saved from localStorage
-  const savedLayout = (() => {
-    try {
-      const item = localStorage.getItem('arceus_panel_layout');
-      return item ? JSON.parse(item) : { 'editor-pane': 50, 'tabs-pane': 50 };
-    } catch {
-      return { 'editor-pane': 50, 'tabs-pane': 50 };
-    }
-  })();
-
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden bg-[var(--bg-app)] text-[var(--text-main)] transition-colors">
+      {/* Topbar estilo IntelliJ IDEA */}
       <Topbar
         status={status}
         optimize={optimize}
@@ -249,218 +295,225 @@ function IdeWorkspace() {
         isAnalyzing={isAnalyzing}
       />
 
-      {/* Main Resizable Splitter Area */}
-      <Group
-        orientation="horizontal"
-        id="arceus-ide-split"
-        defaultLayout={savedLayout}
-        onLayoutChanged={(layout) => {
-          try {
-            localStorage.setItem('arceus_panel_layout', JSON.stringify(layout));
-          } catch {
-            // ignore
-          }
-        }}
-        className="flex-1 overflow-hidden"
-      >
-        {/* Painel Esquerdo: Abas de Arquivos + Editor MiniLang */}
-        <Panel id="editor-pane" minSize={25} className="flex flex-col h-full overflow-hidden bg-[var(--bg-surface)]">
-          <EditorTabs
+      {/* Espaço de Trabalho Principal: ActivityBar + ProjectSidebar + Área do Editor & Ferramentas */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Barra de Atividades Vertical Esquerda (IntelliJ IDEA) */}
+        <ActivityBar
+          sidebarOpen={sidebarOpen}
+          onToggleSidebar={() => setSidebarOpen((prev) => !prev)}
+          activeTab={activeTab}
+          onSelectTab={(tab) => {
+            setActiveTab(tab);
+            setIsToolWindowVisible(true);
+          }}
+          isToolWindowVisible={isToolWindowVisible}
+          onToggleToolWindow={() => setIsToolWindowVisible((prev) => !prev)}
+          onOpenCommandPalette={() => setIsPaletteOpen(true)}
+          isRunning={status === 'RUNNING' || status === 'WAITING_INPUT' || status === 'CONNECTING'}
+          onRun={handleRun}
+          onAbort={abortExecution}
+          errorsCount={errors.length}
+        />
+
+        {/* Painel Lateral de Projeto (IntelliJ IDEA) */}
+        {sidebarOpen && (
+          <ProjectSidebar
             files={files}
             activeFileId={activeFileId}
             onSelectFile={selectFile}
             onCreateFile={() => createFile()}
             onCloseFile={closeFile}
             onRenameFile={renameFile}
-            onCopyCode={handleCopyCode}
-            showMinimap={showMinimap}
-            onToggleMinimap={() => setShowMinimap((prev) => !prev)}
+            onSelectExample={handleSelectExample}
+            onOpenFile={handleOpenFile}
+            onCollapse={() => setSidebarOpen(false)}
           />
+        )}
 
-          <div className="flex-1 overflow-hidden">
-            <CodeEditor
-              ref={editorRef}
-              value={activeContent}
-              onChange={handleCodeChange}
-              errors={errors}
-              onRunShortcut={handleRun}
-              theme={theme}
-              onCursorChange={(line, col) => setCursorPos({ line, col })}
-              showMinimap={showMinimap}
-            />
-          </div>
-        </Panel>
-
-        {/* Barra de Redimensionamento */}
-        <Separator className="w-1.5 bg-[var(--border-color)] hover:bg-amber-400/50 transition-colors cursor-col-resize active:bg-amber-400" />
-
-        {/* Painel Direito: Abas de Execução e Inspeção */}
-        <Panel id="tabs-pane" minSize={25} className="flex flex-col h-full overflow-hidden bg-[var(--bg-panel)]">
-          {/* Navegação de Abas */}
-          <div className="flex items-center bg-[var(--bg-header)] border-b border-[var(--border-color)] px-2 select-none overflow-x-auto text-xs no-scrollbar">
-            <button
-              onClick={() => setActiveTab('console')}
-              className={`flex items-center gap-1.5 px-3 py-2 border-b-2 font-medium transition ${
-                activeTab === 'console'
-                  ? 'bg-[var(--bg-active-tab)] text-white'
-                  : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-surface)]'
-              }`}
-              style={
-                activeTab === 'console'
-                  ? { borderBottomColor: themeConfig.primaryColor, color: themeConfig.primaryColor }
-                  : undefined
+        {/* Área Central: Splitter Redimensionável (Abaixo ou Direita) */}
+        <div className="flex-1 flex flex-col h-full overflow-hidden bg-[var(--bg-surface)]">
+          {isToolWindowVisible ? (
+            <Group
+              key={panelPosition}
+              orientation={panelPosition === 'bottom' ? 'vertical' : 'horizontal'}
+              id={`arceus-ide-split-${panelPosition}`}
+              defaultLayout={
+                isToolWindowMaximized
+                  ? { 'editor-pane': 15, 'tabs-pane': 85 }
+                  : panelPosition === 'bottom'
+                  ? { 'editor-pane': 60, 'tabs-pane': 40 }
+                  : { 'editor-pane': 55, 'tabs-pane': 45 }
               }
+              className="flex-1 overflow-hidden"
             >
-              <TerminalIcon className="w-3.5 h-3.5" />
-              <span>Console</span>
-            </button>
+              {/* Painel do Editor MiniLang (Fundo cinza preenchendo até o limite) */}
+              <Panel
+                id="editor-pane"
+                minSize={15}
+                className="flex flex-col h-full overflow-hidden bg-[var(--bg-surface)]"
+              >
+                <EditorTabs
+                  files={files}
+                  activeFileId={activeFileId}
+                  onSelectFile={selectFile}
+                  onCreateFile={() => createFile()}
+                  onCloseFile={closeFile}
+                  onRenameFile={renameFile}
+                  onCopyCode={handleCopyCode}
+                  showMinimap={showMinimap}
+                  onToggleMinimap={() => setShowMinimap((prev) => !prev)}
+                  sidebarOpen={sidebarOpen}
+                  onToggleSidebar={() => setSidebarOpen((prev) => !prev)}
+                  panelPosition={panelPosition}
+                  onTogglePanelPosition={handleTogglePanelPosition}
+                />
 
-            <button
-              onClick={() => setActiveTab('problems')}
-              className={`flex items-center gap-1.5 px-3 py-2 border-b-2 font-medium transition ${
-                activeTab === 'problems'
-                  ? 'border-rose-400 text-rose-400 bg-[var(--bg-active-tab)]'
-                  : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-surface)]'
-              }`}
-            >
-              <AlertOctagon className="w-3.5 h-3.5" />
-              <span>Problemas</span>
-              {errors.length > 0 && (
-                <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-rose-950 text-rose-300 font-bold border border-rose-800/40">
-                  {errors.length}
-                </span>
-              )}
-            </button>
+                <div className="flex-1 h-full overflow-hidden bg-[var(--bg-surface)] flex flex-col">
+                  <CodeEditor
+                    ref={editorRef}
+                    value={activeContent}
+                    onChange={handleCodeChange}
+                    errors={errors}
+                    onRunShortcut={handleRun}
+                    theme={theme}
+                    onCursorChange={(line, col) => setCursorPos({ line, col })}
+                    showMinimap={showMinimap}
+                  />
+                </div>
+              </Panel>
 
-            <button
-              onClick={() => setActiveTab('ast')}
-              className={`flex items-center gap-1.5 px-3 py-2 border-b-2 font-medium transition ${
-                activeTab === 'ast'
-                  ? 'bg-[var(--bg-active-tab)] text-white'
-                  : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-surface)]'
-              }`}
-              style={
-                activeTab === 'ast'
-                  ? { borderBottomColor: themeConfig.secondaryColor, color: themeConfig.secondaryColor }
-                  : undefined
-              }
-            >
-              <GitCompare className="w-3.5 h-3.5" />
-              <span>AST (Árvore)</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('cfg')}
-              className={`flex items-center gap-1.5 px-3 py-2 border-b-2 font-medium transition ${
-                activeTab === 'cfg'
-                  ? 'bg-[var(--bg-active-tab)] text-white'
-                  : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-surface)]'
-              }`}
-              style={
-                activeTab === 'cfg'
-                  ? { borderBottomColor: themeConfig.primaryColor, color: themeConfig.primaryColor }
-                  : undefined
-              }
-            >
-              <Network className="w-3.5 h-3.5" />
-              <span>CFG (Fluxo)</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('symbols')}
-              className={`flex items-center gap-1.5 px-3 py-2 border-b-2 font-medium transition ${
-                activeTab === 'symbols'
-                  ? 'bg-[var(--bg-active-tab)] text-white'
-                  : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-surface)]'
-              }`}
-              style={
-                activeTab === 'symbols'
-                  ? { borderBottomColor: themeConfig.primaryColor, color: themeConfig.primaryColor }
-                  : undefined
-              }
-            >
-              <Database className="w-3.5 h-3.5" />
-              <span>Símbolos</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('tokens')}
-              className={`flex items-center gap-1.5 px-3 py-2 border-b-2 font-medium transition ${
-                activeTab === 'tokens'
-                  ? 'bg-[var(--bg-active-tab)] text-white'
-                  : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-surface)]'
-              }`}
-              style={
-                activeTab === 'tokens'
-                  ? { borderBottomColor: themeConfig.secondaryColor, color: themeConfig.secondaryColor }
-                  : undefined
-              }
-            >
-              <Binary className="w-3.5 h-3.5" />
-              <span>Tokens</span>
-              {analysisData?.tokens && analysisData.tokens.length > 0 && (
-                <span className="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-sky-950 text-sky-300 font-semibold border border-sky-800/40">
-                  {analysisData.tokens.length}
-                </span>
-              )}
-            </button>
-          </div>
-
-          {/* Conteúdo da Aba Ativa */}
-          <div className="flex-1 overflow-hidden">
-            {activeTab === 'console' && (
-              <Terminal
-                messages={messages}
-                status={status}
-                waitingInput={waitingInput}
-                exitCode={exitCode}
-                durationMs={durationMs}
-                onSendStdin={sendStdin}
-                onClear={clearConsole}
-                onAbort={abortExecution}
+              {/* Barra de Redimensionamento Horizontal ou Vertical */}
+              <Separator
+                className={
+                  panelPosition === 'bottom'
+                    ? 'h-1.5 w-full bg-[var(--border-color)] hover:bg-amber-400/50 transition-colors cursor-row-resize active:bg-amber-400 border-y border-[var(--border-color)] shrink-0'
+                    : 'w-1.5 h-full bg-[var(--border-color)] hover:bg-amber-400/50 transition-colors cursor-col-resize active:bg-amber-400 border-x border-[var(--border-color)] shrink-0'
+                }
               />
-            )}
 
-            {activeTab === 'problems' && (
-              <DiagnosticsPanel
-                errors={errors}
-                onSelectError={handleSelectError}
-              />
-            )}
+              {/* Painel de Ferramentas (Console, Problemas, AST, CFG, Símbolos, Tokens) */}
+              <Panel
+                id="tabs-pane"
+                minSize={15}
+                className="flex flex-col h-full overflow-hidden bg-[var(--bg-panel)]"
+              >
+                <ToolWindowHeader
+                  activeTab={activeTab}
+                  onSelectTab={(tab) => {
+                    if (tab === activeTab && isToolWindowVisible) {
+                      setIsToolWindowVisible(false);
+                    } else {
+                      setActiveTab(tab);
+                    }
+                  }}
+                  errorsCount={errors.length}
+                  tokensCount={analysisData?.tokens?.length}
+                  panelPosition={panelPosition}
+                  onTogglePanelPosition={handleTogglePanelPosition}
+                  isMaximized={isToolWindowMaximized}
+                  onToggleMaximize={() => setIsToolWindowMaximized((prev) => !prev)}
+                  onClose={() => setIsToolWindowVisible(false)}
+                />
 
-            {activeTab === 'ast' && (
-              <AstPanel
-                rawAst={analysisData?.ast_raw ?? null}
-                optimizedAst={analysisData?.ast_optimized ?? null}
-                optimizeEnabled={optimize}
-                isLoading={isAnalyzing}
-              />
-            )}
+                <div className="flex-1 overflow-hidden bg-[var(--bg-panel)]">
+                  {activeTab === 'console' && (
+                    <Terminal
+                      messages={messages}
+                      status={status}
+                      waitingInput={waitingInput}
+                      exitCode={exitCode}
+                      durationMs={durationMs}
+                      onSendStdin={sendStdin}
+                      onClear={clearConsole}
+                      onAbort={abortExecution}
+                    />
+                  )}
 
-            {activeTab === 'cfg' && (
-              <CfgPanel
-                sourceCode={activeContent}
-                astRaw={analysisData?.ast_optimized ?? analysisData?.ast_raw ?? null}
-                isLoading={isAnalyzing}
-              />
-            )}
+                  {activeTab === 'problems' && (
+                    <DiagnosticsPanel
+                      errors={errors}
+                      onSelectError={handleSelectError}
+                    />
+                  )}
 
-            {activeTab === 'symbols' && (
-              <SymbolTablePanel
-                symbols={analysisData?.symbol_table ?? []}
-                isLoading={isAnalyzing}
-              />
-            )}
+                  {activeTab === 'ast' && (
+                    <AstPanel
+                      rawAst={analysisData?.ast_raw ?? null}
+                      optimizedAst={analysisData?.ast_optimized ?? null}
+                      optimizeEnabled={optimize}
+                      isLoading={isAnalyzing}
+                    />
+                  )}
 
-            {activeTab === 'tokens' && (
-              <TokensPanel
-                tokens={analysisData?.tokens ?? []}
-                isLoading={isAnalyzing}
+                  {activeTab === 'cfg' && (
+                    <CfgPanel
+                      sourceCode={activeContent}
+                      astRaw={analysisData?.ast_optimized ?? analysisData?.ast_raw ?? null}
+                      isLoading={isAnalyzing}
+                    />
+                  )}
+
+                  {activeTab === 'symbols' && (
+                    <SymbolTablePanel
+                      symbols={analysisData?.symbol_table ?? []}
+                      isLoading={isAnalyzing}
+                    />
+                  )}
+
+                  {activeTab === 'tokens' && (
+                    <TokensPanel
+                      tokens={analysisData?.tokens ?? []}
+                      isLoading={isAnalyzing}
+                    />
+                  )}
+                </div>
+              </Panel>
+            </Group>
+          ) : (
+            /* Tool Window Recolhida: Editor ocupa até o limite inferior */
+            <div className="flex-1 flex flex-col h-full overflow-hidden bg-[var(--bg-surface)]">
+              <EditorTabs
+                files={files}
+                activeFileId={activeFileId}
+                onSelectFile={selectFile}
+                onCreateFile={() => createFile()}
+                onCloseFile={closeFile}
+                onRenameFile={renameFile}
+                onCopyCode={handleCopyCode}
+                showMinimap={showMinimap}
+                onToggleMinimap={() => setShowMinimap((prev) => !prev)}
+                sidebarOpen={sidebarOpen}
+                onToggleSidebar={() => setSidebarOpen((prev) => !prev)}
+                panelPosition={panelPosition}
+                onTogglePanelPosition={handleTogglePanelPosition}
               />
-            )}
-          </div>
-        </Panel>
-      </Group>
+
+              <div className="flex-1 h-full overflow-hidden bg-[var(--bg-surface)] flex flex-col">
+                <CodeEditor
+                  ref={editorRef}
+                  value={activeContent}
+                  onChange={handleCodeChange}
+                  errors={errors}
+                  onRunShortcut={handleRun}
+                  theme={theme}
+                  onCursorChange={(line, col) => setCursorPos({ line, col })}
+                  showMinimap={showMinimap}
+                />
+              </div>
+
+              {/* Barra de Ferramentas Inferior recolhida estilo IntelliJ IDEA */}
+              <BottomToolStripe
+                activeTab={activeTab}
+                onOpenTab={(tab) => {
+                  setActiveTab(tab);
+                  setIsToolWindowVisible(true);
+                }}
+                errorsCount={errors.length}
+              />
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* Barra de Status Inferior */}
       <StatusBar
@@ -485,7 +538,10 @@ function IdeWorkspace() {
         onClearTerminal={clearConsole}
         onCreateFile={() => createFile()}
         onSelectExample={(code) => handleSelectExample(code)}
-        onSelectTab={(tab) => setActiveTab(tab)}
+        onSelectTab={(tab) => {
+          setActiveTab(tab);
+          setIsToolWindowVisible(true);
+        }}
       />
     </div>
   );
