@@ -97,4 +97,17 @@ export interface ThemeConfig {
   accentBg: string;
   borderAccent: string;
   description: string;
+  isDark: boolean;
+  previewColors: [string, string, string, string]; // [fundo, superfície, primária, destaque]
+}
+
+export type EditorFontSize = '12px' | '14px' | '16px' | '18px';
+export type EditorFontFamily = 'JetBrains Mono' | 'Fira Code';
+
+export interface EditorSettings {
+  fontSize: EditorFontSize;
+  fontFamily: EditorFontFamily;
+  enableLigatures: boolean;
+  editorLineWrapping: boolean;
+  showMinimap: boolean;
 }

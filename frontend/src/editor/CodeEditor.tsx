@@ -1,11 +1,12 @@
 import { useImperativeHandle, forwardRef, useMemo, useRef } from 'react';
 import CodeMirror from '@uiw/react-codemirror';
 import type { ReactCodeMirrorRef } from '@uiw/react-codemirror';
-import { keymap } from '@codemirror/view';
+import { keymap, EditorView } from '@codemirror/view';
 import { showMinimap } from '@replit/codemirror-minimap';
 import { miniLangLanguage } from './minilang-syntax';
 import { createErrorLinter } from './linter';
 import { getEditorThemeExtension } from './themes';
+import { useTheme } from '../context/ThemeContext';
 import type { ErrorItem, ThemeId } from '../types';
 
 export interface CodeEditorRef {
@@ -34,11 +35,12 @@ export const CodeEditor = forwardRef<CodeEditorRef, CodeEditorProps>(
       onRunShortcut,
       theme = 'arceus',
       onCursorChange,
-      showMinimap: enableMinimap = true,
+      showMinimap: showMinimapProp,
     },
     ref
   ) => {
     const cmRef = useRef<ReactCodeMirrorRef>(null);
+    const { settings } = useTheme();
 
     useImperativeHandle(ref, () => ({
       goToLine(line: number, column = 1) {
@@ -61,14 +63,36 @@ export const CodeEditor = forwardRef<CodeEditorRef, CodeEditorProps>(
       },
     }));
 
+    const typographyExtension = useMemo(() => {
+      return EditorView.theme({
+        '&': {
+          fontSize: settings.fontSize,
+        },
+        '.cm-scroller': {
+          fontFamily: `'${settings.fontFamily}', monospace !important`,
+          fontFeatureSettings: settings.enableLigatures ? '"calt" 1, "liga" 1' : '"calt" 0, "liga" 0',
+          fontVariantLigatures: settings.enableLigatures ? 'normal' : 'none',
+        },
+        '.cm-content': {
+          fontFamily: `'${settings.fontFamily}', monospace !important`,
+        },
+      });
+    }, [settings.fontSize, settings.fontFamily, settings.enableLigatures]);
+
     const extensions = useMemo(() => {
       const ext = [
         miniLangLanguage,
         ...getEditorThemeExtension(theme),
         createErrorLinter(errors),
+        typographyExtension,
       ];
 
-      if (enableMinimap) {
+      if (settings.editorLineWrapping) {
+        ext.push(EditorView.lineWrapping);
+      }
+
+      const effectiveMinimap = showMinimapProp !== undefined ? showMinimapProp : settings.showMinimap;
+      if (effectiveMinimap) {
         ext.push(
           showMinimap.compute(['doc'], () => ({
             create: () => ({ dom: document.createElement('div') }),
@@ -100,7 +124,7 @@ export const CodeEditor = forwardRef<CodeEditorRef, CodeEditorProps>(
       }
 
       return ext;
-    }, [theme, errors, onRunShortcut, enableMinimap]);
+    }, [theme, errors, onRunShortcut, showMinimapProp, settings.showMinimap, settings.editorLineWrapping, typographyExtension]);
 
     return (
       <div className="h-full w-full overflow-hidden bg-[var(--bg-surface)] flex flex-col">
