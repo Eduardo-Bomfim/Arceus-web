@@ -77,7 +77,16 @@ export interface ExampleTemplate {
   code: string;
 }
 
-export type ThemeId = 'arceus' | 'void' | 'dialga' | 'giratina';
+export type ThemeId =
+  | 'arceus'
+  | 'arceus-light'
+  | 'void'
+  | 'dialga'
+  | 'giratina'
+  | 'palkia'
+  | 'rayquaza'
+  | 'zekrom'
+  | 'reshiram';
 
 export interface ThemeConfig {
   id: ThemeId;

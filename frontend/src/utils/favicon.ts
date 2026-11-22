@@ -2,9 +2,14 @@ import type { ThemeId } from '../types';
 
 const THEME_FAVICON_COLORS: Record<ThemeId, { primary: string; glow: string }> = {
   arceus: { primary: '#f59e0b', glow: '#10b981' },
+  'arceus-light': { primary: '#d97706', glow: '#059669' },
   void: { primary: '#38bdf8', glow: '#6366f1' },
   dialga: { primary: '#06b6d4', glow: '#3b82f6' },
   giratina: { primary: '#f43f5e', glow: '#d97706' },
+  palkia: { primary: '#a855f7', glow: '#ec4899' },
+  rayquaza: { primary: '#10b981', glow: '#fbbf24' },
+  zekrom: { primary: '#00e5ff', glow: '#38bdf8' },
+  reshiram: { primary: '#ea580c', glow: '#f59e0b' },
 };
 
 export function updateDynamicFavicon(theme: ThemeId): void {
