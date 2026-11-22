@@ -12,6 +12,7 @@ import { ProjectSidebar } from './components/ProjectSidebar';
 import { ToolWindowHeader } from './components/ToolWindowHeader';
 import { BottomToolStripe } from './components/BottomToolStripe';
 import { CommandPalette } from './components/CommandPalette';
+import { SettingsDrawer } from './components/SettingsDrawer';
 import { AstPanel } from './components/panels/AstPanel';
 import { SymbolTablePanel } from './components/panels/SymbolTablePanel';
 import { TokensPanel } from './components/panels/TokensPanel';
@@ -27,7 +28,7 @@ import { downloadFile, openLocalFile } from './utils/file-utils';
 import { getSharedCode, generateShareUrl } from './utils/share';
 
 function IdeWorkspace() {
-  const { theme } = useTheme();
+  const { theme, isSettingsOpen, setIsSettingsOpen } = useTheme();
   const { showToast } = useToast();
   const { activeTab, setActiveTab } = useTabs('console');
   const {
@@ -247,6 +248,11 @@ function IdeWorkspace() {
       ) {
         e.preventDefault();
         setIsPaletteOpen((prev) => !prev);
+      }
+      // Configurações: Ctrl+,
+      else if (e.ctrlKey && e.key === ',') {
+        e.preventDefault();
+        setIsSettingsOpen(!isSettingsOpen);
       } else if (e.key === 'F9' || (e.ctrlKey && e.key === 'Enter')) {
         e.preventDefault();
         handleRun();
@@ -259,6 +265,8 @@ function IdeWorkspace() {
       } else if (e.key === 'Escape') {
         if (isPaletteOpen) {
           setIsPaletteOpen(false);
+        } else if (isSettingsOpen) {
+          setIsSettingsOpen(false);
         } else if (status === 'RUNNING' || status === 'WAITING_INPUT') {
           abortExecution();
         }
@@ -267,7 +275,7 @@ function IdeWorkspace() {
 
     window.addEventListener('keydown', handleGlobalKeyDown);
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
-  }, [handleRun, status, abortExecution, isPaletteOpen, clearConsole, activeTab, isToolWindowVisible, setActiveTab]);
+  }, [handleRun, status, abortExecution, isPaletteOpen, isSettingsOpen, setIsSettingsOpen, clearConsole, activeTab, isToolWindowVisible, setActiveTab]);
 
   const activeContent = activeFile?.content ?? '';
   const lineCount = activeContent.split('\n').length;
@@ -542,6 +550,12 @@ function IdeWorkspace() {
           setActiveTab(tab);
           setIsToolWindowVisible(true);
         }}
+      />
+
+      {/* Gaveta Lateral de Configurações */}
+      <SettingsDrawer
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
       />
     </div>
   );

@@ -8,14 +8,13 @@ import {
   FolderOpen,
   ChevronDown,
   Activity,
-  Palette,
-  Check,
+  Sliders,
   Share2,
   Command,
 } from 'lucide-react';
 import type { HealthStatus, RunnerStatus } from '../types';
 import { EXAMPLES } from '../examples';
-import { useTheme, THEMES } from '../context/ThemeContext';
+import { useTheme } from '../context/ThemeContext';
 
 interface TopbarProps {
   status: RunnerStatus;
@@ -91,12 +90,9 @@ export function Topbar({
   isAnalyzing,
 }: TopbarProps) {
   const [examplesOpen, setExamplesOpen] = useState(false);
-  const [themesOpen, setThemesOpen] = useState(false);
-
   const examplesRef = useRef<HTMLDivElement>(null);
-  const themesRef = useRef<HTMLDivElement>(null);
 
-  const { theme, themeConfig, setTheme } = useTheme();
+  const { themeConfig, setIsSettingsOpen } = useTheme();
 
   const isRunning = status === 'RUNNING' || status === 'WAITING_INPUT' || status === 'CONNECTING';
 
@@ -105,9 +101,6 @@ export function Topbar({
     function handleClickOutside(event: MouseEvent) {
       if (examplesRef.current && !examplesRef.current.contains(event.target as Node)) {
         setExamplesOpen(false);
-      }
-      if (themesRef.current && !themesRef.current.contains(event.target as Node)) {
-        setThemesOpen(false);
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
@@ -216,61 +209,19 @@ export function Topbar({
 
       {/* Lado Direito: Seletor de Temas, Exemplos, Arquivos e Status da API */}
       <div className="flex items-center gap-2">
-        {/* Seletor de Temas */}
-        <div className="relative" ref={themesRef}>
-          <button
-            onClick={() => setThemesOpen(!themesOpen)}
-            title="Escolher Tema Visual da IDE"
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-[var(--bg-surface)] hover:bg-[var(--bg-subtle)] text-[var(--text-main)] text-xs transition border border-[var(--border-color)]"
-          >
-            <Palette className="w-3.5 h-3.5" style={{ color: themeConfig.primaryColor }} />
-            <span className="hidden sm:inline font-medium">{themeConfig.name}</span>
-            <ChevronDown className="w-3 h-3 text-[var(--text-muted)]" />
-          </button>
-
-          {themesOpen && (
-            <div className="absolute right-0 mt-1.5 w-64 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-color)] shadow-2xl shadow-black/80 py-1.5 z-50 divide-y divide-[var(--border-color)]">
-              <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)] flex items-center justify-between">
-                <span>Temas Pokémon & Dark</span>
-                <span className="text-[9px] text-amber-400">Arceus Web</span>
-              </div>
-              <div className="py-1">
-                {THEMES.map((th) => (
-                  <button
-                    key={th.id}
-                    onClick={() => {
-                      setTheme(th.id);
-                      setThemesOpen(false);
-                    }}
-                    className={`w-full text-left px-3 py-2 transition flex items-center justify-between group ${
-                      theme === th.id
-                        ? 'bg-[var(--bg-active-tab)]'
-                        : 'hover:bg-[var(--bg-subtle)]'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <div
-                        className="w-3.5 h-3.5 rounded-full border border-white/20 shadow-sm flex items-center justify-center shrink-0"
-                        style={{ backgroundColor: th.primaryColor }}
-                      />
-                      <div className="flex flex-col">
-                        <span className="text-xs font-semibold text-[var(--text-main)] group-hover:text-white transition">
-                          {th.name}
-                        </span>
-                        <span className="text-[10px] text-[var(--text-muted)]">
-                          {th.subtitle}
-                        </span>
-                      </div>
-                    </div>
-                    {theme === th.id && (
-                      <Check className="w-3.5 h-3.5" style={{ color: th.primaryColor }} />
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
+        {/* Botão Configurações & Galeria de Temas */}
+        <button
+          onClick={() => setIsSettingsOpen(true)}
+          title={`Configurações & Temas (Ctrl+,) — Atual: ${themeConfig.name}`}
+          className="flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-[var(--bg-surface)] hover:bg-[var(--bg-subtle)] text-[var(--text-main)] text-xs transition border border-[var(--border-color)] group"
+        >
+          <div
+            className="w-2.5 h-2.5 rounded-full shadow-sm ring-1 ring-white/20 transition-transform group-hover:scale-110"
+            style={{ backgroundColor: themeConfig.primaryColor }}
+          />
+          <span className="hidden sm:inline font-medium">{themeConfig.name}</span>
+          <Sliders className="w-3.5 h-3.5 text-[var(--text-muted)] group-hover:text-[var(--text-main)] transition-colors ml-0.5" />
+        </button>
 
         {/* Dropdown de Exemplos */}
         <div className="relative" ref={examplesRef}>

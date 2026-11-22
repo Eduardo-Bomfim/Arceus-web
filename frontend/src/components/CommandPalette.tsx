@@ -12,6 +12,7 @@ import {
   FileCode,
   BookOpen,
   Layers,
+  Sliders,
 } from 'lucide-react';
 import { useTheme, THEMES } from '../context/ThemeContext';
 import { EXAMPLES } from '../examples';
@@ -59,7 +60,7 @@ export function CommandPalette({
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
-  const { setTheme } = useTheme();
+  const { setTheme, setIsSettingsOpen } = useTheme();
 
   // Foco no input ao abrir
   useEffect(() => {
@@ -143,7 +144,16 @@ export function CommandPalette({
       action: onOpenFile,
     },
 
-    // Temas
+    // Temas & Configurações
+    {
+      id: 'cmd_open_settings',
+      category: 'Temas' as const,
+      label: 'Abrir Configurações e Temas',
+      detail: 'Personalizar paleta dos Guardiões, tipografia, ligaduras e atalhos na gaveta lateral',
+      icon: <Sliders className="w-4 h-4 text-amber-400" />,
+      shortcut: 'Ctrl+,',
+      action: () => setIsSettingsOpen(true),
+    },
     ...THEMES.map((th) => ({
       id: `cmd_theme_${th.id}`,
       category: 'Temas' as const,
