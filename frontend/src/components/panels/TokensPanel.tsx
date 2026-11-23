@@ -42,29 +42,29 @@ export const TokensPanel = React.memo(function TokensPanel({
 
   if (isLoading) {
     return (
-      <div className="flex flex-col h-full items-center justify-center p-8 space-y-3">
-        <div className="w-8 h-8 rounded-full border-2 border-amber-400 border-t-transparent animate-spin" />
-        <span className="text-xs text-slate-400">Escaneando tokens léxicos...</span>
+      <div className="flex flex-col h-full items-center justify-center p-8 space-y-3 bg-[#1e1f22]">
+        <div className="w-6 h-6 rounded-full border-2 border-[#3574f0] border-t-transparent animate-spin" />
+        <span className="text-xs text-[#868a91]">Scanning Lexical Tokens...</span>
       </div>
     );
   }
 
   if (tokens.length === 0) {
     return (
-      <div className="flex h-full items-center justify-center text-slate-500 italic p-6 text-xs text-center">
-        Nenhum token disponível. Execute uma análise ou compilação para visualizar a sequência léxica.
+      <div className="flex h-full items-center justify-center text-[#868a91] p-6 text-xs text-center font-sans bg-[#1e1f22]">
+        No tokens available. Run inspection or execute code to view token sequence.
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-full bg-[var(--bg-panel)] text-[var(--text-main)] font-mono text-xs overflow-hidden select-text">
-      {/* Barra superior com contador e filtros */}
-      <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 bg-[var(--bg-header)] border-b border-[var(--border-color)] select-none">
+    <div className="flex flex-col h-full bg-[#1e1f22] text-[#dfe1e5] font-sans text-xs overflow-hidden select-text">
+      {/* Header com Filtros */}
+      <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-1.5 bg-[#2b2d30] border-b border-[#393b40] select-none shrink-0">
         <div className="flex items-center gap-2">
-          <Binary className="w-3.5 h-3.5 text-amber-400" />
-          <span className="font-semibold text-slate-200">
-            Tokens do Analisador Léxico ({tokens.length})
+          <Binary className="w-3.5 h-3.5 text-[#38bdf8]" />
+          <span className="font-semibold text-[#dfe1e5]">
+            Lexer Tokens ({tokens.length})
           </span>
         </div>
 
@@ -76,9 +76,9 @@ export const TokensPanel = React.memo(function TokensPanel({
                 setTypeFilter(e.target.value);
                 setCurrentPage(1);
               }}
-              className="bg-[var(--bg-surface)] border border-[var(--border-color)] rounded px-2 py-1 text-slate-200 outline-none text-[11px]"
+              className="bg-[#1e1f22] border border-[#393b40] rounded-[4px] px-2 py-0.5 text-[#dfe1e5] outline-none text-[11px]"
             >
-              <option value="all">Todos os Tipos</option>
+              <option value="all">All Token Types</option>
               {tokenTypes.map((type) => (
                 <option key={type} value={type}>
                   {type}
@@ -88,65 +88,65 @@ export const TokensPanel = React.memo(function TokensPanel({
           )}
 
           <div className="relative">
-            <Search className="w-3 h-3 absolute left-2 top-2 text-slate-500" />
+            <Search className="w-3 h-3 absolute left-2 top-1.5 text-[#868a91]" />
             <input
               type="text"
-              placeholder="Buscar lexema..."
+              placeholder="Search token / lexeme..."
               value={filter}
               onChange={(e) => {
                 setFilter(e.target.value);
                 setCurrentPage(1);
               }}
-              className="bg-[var(--bg-surface)] border border-[var(--border-color)] rounded pl-7 pr-2 py-1 text-slate-200 placeholder-slate-500 outline-none text-[11px] w-36"
+              className="bg-[#1e1f22] border border-[#393b40] rounded-[4px] pl-6 pr-2 py-0.5 text-[#dfe1e5] placeholder-[#868a91] outline-none text-[11px] w-36 font-mono"
             />
           </div>
         </div>
       </div>
 
-      {/* Tabela de tokens */}
+      {/* Tabela de Tokens */}
       <div className="flex-1 overflow-auto">
-        <table className="w-full text-left border-collapse">
-          <thead className="bg-[var(--bg-surface)] text-slate-400 sticky top-0 border-b border-[var(--border-color)] select-none text-[11px]">
+        <table className="w-full text-left border-collapse font-sans text-xs">
+          <thead className="bg-[#2b2d30] text-[#868a91] sticky top-0 border-b border-[#393b40] select-none text-[11px]">
             <tr>
-              <th className="py-2 px-3 w-12">#</th>
-              <th className="py-2 px-3">Tipo de Token</th>
-              <th className="py-2 px-3">Lexema (Valor)</th>
-              <th className="py-2 px-3">Linha</th>
-              <th className="py-2 px-3">Coluna</th>
+              <th className="py-1.5 px-3 w-12 font-semibold">#</th>
+              <th className="py-1.5 px-3 font-semibold">Token Type</th>
+              <th className="py-1.5 px-3 font-semibold">Lexeme</th>
+              <th className="py-1.5 px-3 font-semibold">Line</th>
+              <th className="py-1.5 px-3 font-semibold">Column</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-[var(--border-color)]">
+          <tbody className="divide-y divide-[#2b2d30]">
             {pagedTokens.map((tok, idx) => {
               const globalIdx = (safePage - 1) * PAGE_SIZE + idx + 1;
               return (
-                <tr key={idx} className="hover:bg-[var(--bg-surface)] transition">
-                  <td className="py-2 px-3 text-slate-600">{globalIdx}</td>
-                  <td className="py-2 px-3">
+                <tr key={idx} className="hover:bg-[#2b2d30] transition">
+                  <td className="py-1.5 px-3 text-[#6f737a] font-mono text-[11px]">{globalIdx}</td>
+                  <td className="py-1.5 px-3">
                     <span
-                      className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${
+                      className={`px-1.5 py-0.2 rounded text-[10px] font-mono font-semibold ${
                         tok.type === 'KEYWORD'
-                          ? 'bg-amber-950/60 text-amber-300 border border-amber-800/40'
+                          ? 'bg-[#cf8e6d]/15 text-[#cf8e6d] border border-[#cf8e6d]/30'
                           : tok.type === 'ID'
-                          ? 'bg-sky-950/60 text-sky-300 border border-sky-800/40'
+                          ? 'bg-[#56a8f5]/15 text-[#56a8f5] border border-[#56a8f5]/30'
                           : tok.type === 'INT'
-                          ? 'bg-emerald-950/60 text-emerald-300 border border-emerald-800/40'
+                          ? 'bg-[#2aacb8]/15 text-[#2aacb8] border border-[#2aacb8]/30'
                           : tok.type === 'ERROR'
-                          ? 'bg-rose-950 text-rose-300 border border-rose-800/40'
-                          : 'bg-slate-800 text-slate-300'
+                          ? 'bg-[#f75464]/15 text-[#f75464] border border-[#f75464]/30'
+                          : 'bg-[#2b2d30] text-[#bcbec4] border border-[#393b40]'
                       }`}
                     >
                       {tok.type}
                     </span>
                   </td>
-                  <td className="py-2 px-3 font-semibold text-slate-200">
+                  <td className="py-1.5 px-3 font-mono font-medium text-[#dfe1e5]">
                     {tok.value === '' && tok.type === 'EOF' ? (
-                      <span className="text-slate-500 italic">&lt;EOF&gt;</span>
+                      <span className="text-[#868a91] italic">&lt;EOF&gt;</span>
                     ) : (
                       tok.value
                     )}
                   </td>
-                  <td className="py-2 px-3 text-slate-400">{tok.line}</td>
-                  <td className="py-2 px-3 text-slate-400">{tok.column}</td>
+                  <td className="py-1.5 px-3 text-[#868a91] font-mono text-[11px]">{tok.line}</td>
+                  <td className="py-1.5 px-3 text-[#868a91] font-mono text-[11px]">{tok.column}</td>
                 </tr>
               );
             })}
@@ -154,29 +154,29 @@ export const TokensPanel = React.memo(function TokensPanel({
         </table>
       </div>
 
-      {/* Paginação (#13: Virtualização / Paginação Fluida) */}
+      {/* Paginação */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between px-3 py-1.5 bg-[var(--bg-header)] border-t border-[var(--border-color)] text-[11px] text-[var(--text-muted)] select-none">
+        <div className="flex items-center justify-between px-3 py-1 bg-[#2b2d30] border-t border-[#393b40] text-[11px] text-[#868a91] select-none shrink-0 font-sans">
           <span>
-            Mostrando {(safePage - 1) * PAGE_SIZE + 1} -{' '}
-            {Math.min(safePage * PAGE_SIZE, filteredTokens.length)} de {filteredTokens.length} tokens
+            Showing {(safePage - 1) * PAGE_SIZE + 1} -{' '}
+            {Math.min(safePage * PAGE_SIZE, filteredTokens.length)} of {filteredTokens.length} tokens
           </span>
 
           <div className="flex items-center gap-1.5">
             <button
               onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
               disabled={safePage === 1}
-              className="p-1 rounded bg-[var(--bg-surface)] hover:bg-[var(--bg-panel)] disabled:opacity-40 transition"
+              className="p-1 rounded-[4px] bg-[#1e1f22] hover:bg-[#35373c] disabled:opacity-30 transition"
             >
               <ChevronLeft className="w-3.5 h-3.5" />
             </button>
             <span>
-              Página {safePage} de {totalPages}
+              Page {safePage} of {totalPages}
             </span>
             <button
               onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
               disabled={safePage === totalPages}
-              className="p-1 rounded bg-[var(--bg-surface)] hover:bg-[var(--bg-panel)] disabled:opacity-40 transition"
+              className="p-1 rounded-[4px] bg-[#1e1f22] hover:bg-[#35373c] disabled:opacity-30 transition"
             >
               <ChevronRight className="w-3.5 h-3.5" />
             </button>

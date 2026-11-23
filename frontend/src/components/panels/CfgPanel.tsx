@@ -336,8 +336,6 @@ export const CfgPanel = React.memo(function CfgPanel({
   activeLine,
   onNodeClick,
 }: CfgPanelProps) {
-  const { themeConfig } = useTheme();
-
   if (isLoading) {
     return (
       <div className="flex flex-col h-full items-center justify-center p-8 space-y-3 bg-[var(--bg-panel)] text-[var(--text-main)]">
@@ -350,18 +348,18 @@ export const CfgPanel = React.memo(function CfgPanel({
   }
 
   return (
-    <div className="flex flex-col h-full bg-[var(--bg-panel)] text-[var(--text-main)] font-mono text-xs overflow-hidden select-text">
+    <div className="flex flex-col h-full bg-[#1e1f22] text-[#dfe1e5] font-sans text-xs overflow-hidden select-text">
       {/* Header com Metadados e Tema */}
-      <div className="flex items-center justify-between px-3.5 py-2 bg-[var(--bg-header)] border-b border-[var(--border-color)] select-none">
+      <div className="flex items-center justify-between px-3 py-1.5 bg-[#2b2d30] border-b border-[#393b40] select-none shrink-0">
         <div className="flex items-center gap-2">
-          <Network className="w-3.5 h-3.5" style={{ color: themeConfig.primaryColor }} />
-          <span className="font-semibold text-[var(--text-main)]">
-            Grafo de Fluxo de Controle Interativo (CFG • React Flow + Dagre)
+          <Network className="w-3.5 h-3.5 text-[#a855f7]" />
+          <span className="font-semibold text-[#dfe1e5]">
+            Control Flow Graph (CFG)
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-[11px] text-[var(--text-muted)]">
-            Zoom, pan, minimap &amp; sync bidirecional
+          <span className="text-[11px] text-[#868a91]">
+            Zoom, pan, and click nodes to navigate
           </span>
         </div>
       </div>
