@@ -16,6 +16,7 @@ interface AstPanelProps {
   optimizedAst: string | null;
   optimizeEnabled: boolean;
   isLoading?: boolean;
+  onSelectLine?: (line: number) => void;
 }
 
 interface AstNodeItem {
@@ -24,6 +25,7 @@ interface AstNodeItem {
   text: string;
   typeBadge?: string;
   isFolded?: boolean;
+  line?: number;
 }
 
 function parseAstLines(astText: string | null): AstNodeItem[] {
@@ -53,12 +55,16 @@ function parseAstLines(astText: string | null): AstNodeItem[] {
     // Checa se é um literal gerado por Constant Folding
     const isFolded = text.startsWith('Literal') && (text.includes('INTEIRO') || text.includes('BOOLEANO'));
 
+    const lineMatch = text.match(/(?:line|linha)[=:\s]+(\d+)/i);
+    const lineNum = lineMatch ? parseInt(lineMatch[1], 10) : undefined;
+
     return {
       id: `ast_node_${idx}`,
       depth,
       text,
       typeBadge,
       isFolded,
+      line: lineNum,
     };
   });
 }
@@ -68,6 +74,7 @@ export const AstPanel = React.memo(function AstPanel({
   optimizedAst,
   optimizeEnabled,
   isLoading,
+  onSelectLine,
 }: AstPanelProps) {
   const [copied, setCopied] = useState(false);
   const [viewMode, setViewMode] = useState<'split' | 'tree'>('split');
@@ -204,7 +211,10 @@ export const AstPanel = React.memo(function AstPanel({
               <div
                 key={node.id}
                 style={{ paddingLeft: `${node.depth * 22}px` }}
-                className="flex items-center gap-2 py-1 px-2 rounded hover:bg-[var(--bg-surface)] transition group"
+                onClick={() => node.line && onSelectLine?.(node.line)}
+                className={`flex items-center gap-2 py-1 px-2 rounded hover:bg-[var(--bg-surface)] transition group ${
+                  node.line ? 'cursor-pointer hover:border-l-2 hover:border-[var(--accent-primary)]' : ''
+                }`}
               >
                 {node.depth > 0 && (
                   <button
