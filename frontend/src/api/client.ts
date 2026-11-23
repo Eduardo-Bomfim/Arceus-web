@@ -38,12 +38,14 @@ export async function checkHealth(): Promise<{
 
 export async function analyzeCode(
   source: string,
-  optimize = false
+  optimize = false,
+  signal?: AbortSignal
 ): Promise<AnalyzeResponse> {
   const res = await fetch(`${API_BASE}/api/analyze`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ source, optimize }),
+    signal,
   });
 
   if (!res.ok) {
@@ -55,12 +57,14 @@ export async function analyzeCode(
 export async function runProgramHttp(
   source: string,
   inputs: string[] = [],
-  optimize = false
+  optimize = false,
+  signal?: AbortSignal
 ): Promise<RunResponse> {
   const res = await fetch(`${API_BASE}/api/run`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ source, inputs, optimize }),
+    signal,
   });
 
   if (!res.ok) {
