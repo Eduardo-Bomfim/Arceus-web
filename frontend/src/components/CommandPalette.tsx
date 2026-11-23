@@ -13,6 +13,7 @@ import {
   BookOpen,
   Layers,
   Sliders,
+  Sparkles,
 } from 'lucide-react';
 import { useTheme, THEMES } from '../context/ThemeContext';
 import { EXAMPLES } from '../examples';
@@ -29,6 +30,7 @@ interface CommandPaletteProps {
   onOpenFile: () => void;
   onClearTerminal: () => void;
   onCreateFile: () => void;
+  onFormatCode?: () => void;
   onSelectExample: (code: string) => void;
   onSelectTab: (tab: TabType) => void;
 }
@@ -54,6 +56,7 @@ export function CommandPalette({
   onOpenFile,
   onClearTerminal,
   onCreateFile,
+  onFormatCode,
   onSelectExample,
   onSelectTab,
 }: CommandPaletteProps) {
@@ -100,6 +103,19 @@ export function CommandPalette({
       icon: <SearchCode className="w-4 h-4 text-sky-400" />,
       action: onAnalyze,
     },
+    ...(onFormatCode
+      ? [
+          {
+            id: 'cmd_format_code',
+            category: 'Execução' as const,
+            label: 'Formatar Código MiniLang',
+            detail: 'Normaliza indentação e espaçamentos (2 espaços)',
+            icon: <Sparkles className="w-4 h-4 text-amber-400" />,
+            shortcut: 'Shift+Alt+F',
+            action: onFormatCode,
+          },
+        ]
+      : []),
     {
       id: 'cmd_clear_terminal',
       category: 'Execução',

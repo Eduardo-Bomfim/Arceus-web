@@ -26,6 +26,7 @@ import { useTabs } from './hooks/useTabs';
 import { useFiles } from './hooks/useFiles';
 import { downloadFile, openLocalFile } from './utils/file-utils';
 import { getSharedCode, generateShareUrl } from './utils/share';
+import { formatMiniLangCode } from './editor/formatter';
 
 function IdeWorkspace() {
   const { theme, isSettingsOpen, setIsSettingsOpen } = useTheme();
@@ -191,6 +192,19 @@ function IdeWorkspace() {
     showToast('Todas as alterações foram salvas automaticamente!', 'info');
   };
 
+  // Format code (Shift+Alt+F)
+  const handleFormatCode = useCallback(() => {
+    if (!activeFile) return;
+    const formatted = formatMiniLangCode(activeFile.content);
+    if (formatted !== activeFile.content) {
+      updateContent(formatted);
+      runAnalysis(formatted, optimize);
+      showToast('Código formatado com sucesso! (2 espaços)', 'success');
+    } else {
+      showToast('O código já está perfeitamente formatado.', 'info');
+    }
+  }, [activeFile, updateContent, runAnalysis, optimize, showToast]);
+
   // Select error in editor
   const handleSelectError = (line: number, column?: number) => {
     editorRef.current?.goToLine(line, column);
@@ -253,6 +267,11 @@ function IdeWorkspace() {
       else if (e.ctrlKey && e.key === ',') {
         e.preventDefault();
         setIsSettingsOpen(!isSettingsOpen);
+      }
+      // Formatar Código: Shift+Alt+F
+      else if (e.shiftKey && e.altKey && (e.key === 'F' || e.key === 'f')) {
+        e.preventDefault();
+        handleFormatCode();
       } else if (e.key === 'F9' || (e.ctrlKey && e.key === 'Enter')) {
         e.preventDefault();
         handleRun();
@@ -275,7 +294,7 @@ function IdeWorkspace() {
 
     window.addEventListener('keydown', handleGlobalKeyDown);
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
-  }, [handleRun, status, abortExecution, isPaletteOpen, isSettingsOpen, setIsSettingsOpen, clearConsole, activeTab, isToolWindowVisible, setActiveTab]);
+  }, [handleRun, handleFormatCode, status, abortExecution, isPaletteOpen, isSettingsOpen, setIsSettingsOpen, clearConsole, activeTab, isToolWindowVisible, setActiveTab]);
 
   const activeContent = activeFile?.content ?? '';
   const lineCount = activeContent.split('\n').length;
@@ -368,12 +387,15 @@ function IdeWorkspace() {
                   onCloseFile={closeFile}
                   onRenameFile={renameFile}
                   onCopyCode={handleCopyCode}
+                  onFormatCode={handleFormatCode}
                   showMinimap={showMinimap}
                   onToggleMinimap={() => setShowMinimap((prev) => !prev)}
                   sidebarOpen={sidebarOpen}
                   onToggleSidebar={() => setSidebarOpen((prev) => !prev)}
                   panelPosition={panelPosition}
                   onTogglePanelPosition={handleTogglePanelPosition}
+                  cursorLine={cursorPos.line}
+                  onNavigateToLine={(line) => editorRef.current?.goToLine(line)}
                 />
 
                 <div className="flex-1 h-full overflow-hidden bg-[var(--bg-surface)] flex flex-col">
@@ -382,7 +404,9 @@ function IdeWorkspace() {
                     value={activeContent}
                     onChange={handleCodeChange}
                     errors={errors}
+                    symbols={analysisData?.symbol_table ?? []}
                     onRunShortcut={handleRun}
+                    onFormatShortcut={handleFormatCode}
                     theme={theme}
                     onCursorChange={(line, col) => setCursorPos({ line, col })}
                     showMinimap={showMinimap}
@@ -548,6 +572,7 @@ function IdeWorkspace() {
         onOpenFile={handleOpenFile}
         onClearTerminal={clearConsole}
         onCreateFile={() => createFile()}
+        onFormatCode={handleFormatCode}
         onSelectExample={(code) => handleSelectExample(code)}
         onSelectTab={(tab) => {
           setActiveTab(tab);
