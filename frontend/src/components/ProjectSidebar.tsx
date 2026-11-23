@@ -1,22 +1,19 @@
 import React, { useState } from 'react';
 import type { KeyboardEvent } from 'react';
 import {
-  FolderTree,
   Folder,
   FolderOpen as FolderOpenIcon,
-  FileCode,
   Plus,
   Trash2,
   Edit2,
   ChevronDown,
   ChevronRight,
-  BookOpen,
-  ChevronsLeft,
+  Library,
+  Minus,
   Sparkles,
 } from 'lucide-react';
 import type { EditorFile } from '../hooks/useFiles';
 import { EXAMPLES } from '../examples';
-import { useTheme } from '../context/ThemeContext';
 
 interface ProjectSidebarProps {
   files: EditorFile[];
@@ -30,6 +27,15 @@ interface ProjectSidebarProps {
   onCollapse: () => void;
 }
 
+// Ícone oficial de arquivo MiniLang estilo JetBrains
+function JetBrainsMlFileIcon() {
+  return (
+    <div className="w-3.5 h-3.5 rounded-[2px] bg-[#3574f0]/20 border border-[#3574f0]/50 flex items-center justify-center shrink-0">
+      <span className="text-[8px] font-black font-mono text-[#56a8f5] leading-none">M</span>
+    </div>
+  );
+}
+
 export function ProjectSidebar({
   files,
   activeFileId,
@@ -41,9 +47,8 @@ export function ProjectSidebar({
   onOpenFile,
   onCollapse,
 }: ProjectSidebarProps) {
-  const { themeConfig } = useTheme();
   const [srcFolderOpen, setSrcFolderOpen] = useState(true);
-  const [examplesFolderOpen, setExamplesFolderOpen] = useState(false);
+  const [librariesOpen, setLibrariesOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
 
@@ -69,191 +74,186 @@ export function ProjectSidebar({
   };
 
   return (
-    <aside className="w-64 h-full bg-[var(--bg-header)] border-r border-[var(--border-color)] flex flex-col select-none shrink-0 transition-all duration-200">
-      {/* Cabeçalho do Projeto - Estilo IntelliJ IDEA */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-[var(--border-color)] bg-[var(--bg-header)] text-xs text-[var(--text-muted)]">
-        <div className="flex items-center gap-2 font-semibold text-[var(--text-main)] uppercase tracking-wider text-[11px]">
-          <FolderTree className="w-3.5 h-3.5" style={{ color: themeConfig.primaryColor }} />
-          <span>Projeto</span>
-          <span className="text-[10px] text-[var(--text-muted)] font-normal lowercase">
-            arceus-web
-          </span>
+    <aside className="w-64 h-full bg-[#2b2d30] border-r border-[#393b40] flex flex-col select-none shrink-0 font-sans text-xs text-[#dfe1e5]">
+      {/* 1. Header do Painel Project (Estilo JetBrains Tool Window Header) */}
+      <div className="h-7 px-2.5 bg-[#2b2d30] border-b border-[#393b40] flex items-center justify-between text-[#dfe1e5]">
+        {/* Project View Dropdown */}
+        <div className="flex items-center gap-1.5 cursor-pointer hover:text-white transition">
+          <span className="font-semibold text-xs text-[#dfe1e5]">Project</span>
+          <ChevronDown className="w-3 h-3 text-[#868a91]" />
         </div>
-        <div className="flex items-center gap-1">
+
+        {/* Ações da Tool Window (Novo arquivo, Abrir, Recolher) */}
+        <div className="flex items-center gap-0.5 text-[#868a91]">
           <button
             onClick={() => onCreateFile()}
-            title="Novo Arquivo MiniLang (com sintaxe padrão)"
-            className="p-1 rounded hover:bg-[var(--bg-surface)] text-[var(--text-muted)] hover:text-white transition"
+            title="New MiniLang File"
+            className="p-1 rounded-[4px] hover:bg-[#35373c] hover:text-[#dfe1e5] transition"
           >
             <Plus className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={onOpenFile}
-            title="Abrir arquivo do computador..."
-            className="p-1 rounded hover:bg-[var(--bg-surface)] text-[var(--text-muted)] hover:text-white transition"
+            title="Open File..."
+            className="p-1 rounded-[4px] hover:bg-[#35373c] hover:text-[#dfe1e5] transition"
           >
             <FolderOpenIcon className="w-3.5 h-3.5" />
           </button>
           <button
             onClick={onCollapse}
-            title="Recolher painel de projeto (Alt+1)"
-            className="p-1 rounded hover:bg-[var(--bg-surface)] text-[var(--text-muted)] hover:text-white transition"
+            title="Hide Project Tool Window (Alt+1)"
+            className="p-1 rounded-[4px] hover:bg-[#35373c] hover:text-[#dfe1e5] transition"
           >
-            <ChevronsLeft className="w-3.5 h-3.5" />
+            <Minus className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
 
-      {/* Árvore de Arquivos - Estrutura de Diretórios estilo IntelliJ IDEA */}
-      <div className="flex-1 overflow-y-auto px-1 py-1.5 text-xs font-mono">
-        {/* Pasta do Código Fonte (src) */}
-        <div>
-          <div
-            onClick={() => setSrcFolderOpen(!srcFolderOpen)}
-            className="flex items-center gap-1.5 px-2 py-1.5 rounded cursor-pointer hover:bg-[var(--bg-surface)] text-[var(--text-main)] group"
-          >
-            {srcFolderOpen ? (
-              <ChevronDown className="w-3.5 h-3.5 text-[var(--text-muted)]" />
-            ) : (
-              <ChevronRight className="w-3.5 h-3.5 text-[var(--text-muted)]" />
-            )}
-            {srcFolderOpen ? (
-              <FolderOpenIcon className="w-4 h-4 text-amber-400/90" />
-            ) : (
-              <Folder className="w-4 h-4 text-amber-400/90" />
-            )}
-            <span className="font-semibold text-xs tracking-tight">src</span>
-            <span className="text-[10px] text-[var(--text-muted)] font-normal">
-              ({files.length})
-            </span>
+      {/* 2. Árvore de Arquivos (JetBrains Project Tree) */}
+      <div className="flex-1 overflow-y-auto py-1 text-xs">
+        {/* Raiz do Projeto: arceus-web */}
+        <div className="px-1.5">
+          <div className="flex items-center gap-1.5 py-1 px-1.5 rounded-[4px] hover:bg-[#35373c] cursor-pointer text-[#dfe1e5] font-medium">
+            <ChevronDown className="w-3 h-3 text-[#868a91] shrink-0" />
+            <Folder className="w-3.5 h-3.5 text-[#3574f0] shrink-0" />
+            <span className="truncate">arceus-web</span>
           </div>
 
-          {/* Lista de Arquivos dentro de src/ */}
-          {srcFolderOpen && (
-            <div className="pl-4 space-y-0.5 mt-0.5 border-l border-[var(--border-color)] ml-3.5">
-              {files.map((file) => {
-                const isActive = file.id === activeFileId;
-                const isEditing = file.id === editingId;
-
-                return (
-                  <div
-                    key={file.id}
-                    onClick={() => onSelectFile(file.id)}
-                    className={`flex items-center justify-between px-2 py-1.5 rounded cursor-pointer transition group ${
-                      isActive
-                        ? 'bg-[var(--bg-active-tab)] text-white font-medium border-l-2'
-                        : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-surface)]'
-                    }`}
-                    style={
-                      isActive
-                        ? { borderLeftColor: themeConfig.primaryColor }
-                        : undefined
-                    }
-                  >
-                    <div className="flex items-center gap-2 min-w-0 flex-1">
-                      <FileCode
-                        className="w-3.5 h-3.5 shrink-0"
-                        style={{
-                          color: isActive ? themeConfig.primaryColor : 'var(--text-muted)',
-                        }}
-                      />
-                      {isEditing ? (
-                        <input
-                          type="text"
-                          value={editName}
-                          onChange={(e) => setEditName(e.target.value)}
-                          onBlur={() => handleFinishRename(file.id)}
-                          onKeyDown={(e) => handleKeyDown(e, file.id)}
-                          autoFocus
-                          onClick={(e) => e.stopPropagation()}
-                          className="bg-[var(--bg-panel)] text-[var(--text-main)] px-1 py-0.5 rounded outline-none border border-amber-400 text-xs w-full"
-                        />
-                      ) : (
-                        <span
-                          className="truncate text-xs"
-                          title={`${file.name} (Duplo clique para renomear)`}
-                          onDoubleClick={(e) => handleStartRename(file, e)}
-                        >
-                          {file.name}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Ações de Arquivo ao passar o mouse */}
-                    <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 shrink-0 ml-1">
-                      <button
-                        onClick={(e) => handleStartRename(file, e)}
-                        title="Renomear arquivo"
-                        className="p-0.5 rounded hover:bg-[var(--border-color)] text-[var(--text-muted)] hover:text-white"
-                      >
-                        <Edit2 className="w-3 h-3" />
-                      </button>
-                      {files.length > 1 && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onCloseFile(file.id);
-                          }}
-                          title="Excluir/Fechar arquivo"
-                          className="p-0.5 rounded hover:bg-rose-950/80 text-[var(--text-muted)] hover:text-rose-400"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
+          {/* Diretório src/ */}
+          <div className="pl-3 mt-0.5">
+            <div
+              onClick={() => setSrcFolderOpen(!srcFolderOpen)}
+              className="flex items-center gap-1.5 py-1 px-1.5 rounded-[4px] hover:bg-[#35373c] cursor-pointer text-[#dfe1e5]"
+            >
+              {srcFolderOpen ? (
+                <ChevronDown className="w-3 h-3 text-[#868a91] shrink-0" />
+              ) : (
+                <ChevronRight className="w-3 h-3 text-[#868a91] shrink-0" />
+              )}
+              {srcFolderOpen ? (
+                <FolderOpenIcon className="w-3.5 h-3.5 text-[#e5a83b] shrink-0" />
+              ) : (
+                <Folder className="w-3.5 h-3.5 text-[#e5a83b] shrink-0" />
+              )}
+              <span className="font-medium">src</span>
+              <span className="text-[10px] text-[#868a91]">({files.length})</span>
             </div>
-          )}
-        </div>
 
-        {/* Pasta de Exemplos / Templates da MiniLang */}
-        <div className="mt-2">
-          <div
-            onClick={() => setExamplesFolderOpen(!examplesFolderOpen)}
-            className="flex items-center gap-1.5 px-2 py-1.5 rounded cursor-pointer hover:bg-[var(--bg-surface)] text-[var(--text-main)] group"
-          >
-            {examplesFolderOpen ? (
-              <ChevronDown className="w-3.5 h-3.5 text-[var(--text-muted)]" />
-            ) : (
-              <ChevronRight className="w-3.5 h-3.5 text-[var(--text-muted)]" />
+            {/* Arquivos dentro de src */}
+            {srcFolderOpen && (
+              <div className="pl-4 space-y-0.5 mt-0.5 border-l border-[#393b40]/60 ml-2.5">
+                {files.map((file) => {
+                  const isActive = file.id === activeFileId;
+                  const isEditing = file.id === editingId;
+
+                  return (
+                    <div
+                      key={file.id}
+                      onClick={() => onSelectFile(file.id)}
+                      className={`flex items-center justify-between py-1 px-2 rounded-[4px] cursor-pointer transition group ${
+                        isActive
+                          ? 'bg-[#2e436e] text-white font-medium'
+                          : 'text-[#bcbec4] hover:text-[#dfe1e5] hover:bg-[#35373c]'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <JetBrainsMlFileIcon />
+                        {isEditing ? (
+                          <input
+                            type="text"
+                            value={editName}
+                            onChange={(e) => setEditName(e.target.value)}
+                            onBlur={() => handleFinishRename(file.id)}
+                            onKeyDown={(e) => handleKeyDown(e, file.id)}
+                            autoFocus
+                            onClick={(e) => e.stopPropagation()}
+                            className="bg-[#1e1f22] text-white px-1 py-0.2 rounded border border-[#3574f0] text-xs w-full font-mono outline-none"
+                          />
+                        ) : (
+                          <span
+                            className="truncate text-xs font-mono"
+                            title={`${file.name} (Double click to rename)`}
+                            onDoubleClick={(e) => handleStartRename(file, e)}
+                          >
+                            {file.name}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Ações ao passar o mouse */}
+                      <div className="opacity-0 group-hover:opacity-100 flex items-center gap-0.5 shrink-0 ml-1">
+                        <button
+                          onClick={(e) => handleStartRename(file, e)}
+                          title="Rename file"
+                          className="p-0.5 rounded hover:bg-[#1e1f22] text-[#868a91] hover:text-white"
+                        >
+                          <Edit2 className="w-3 h-3" />
+                        </button>
+                        {files.length > 1 && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onCloseFile(file.id);
+                            }}
+                            title="Delete file"
+                            className="p-0.5 rounded hover:bg-[#1e1f22] text-[#868a91] hover:text-[#f75464]"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             )}
-            <BookOpen className="w-4 h-4 text-sky-400" />
-            <span className="font-semibold text-xs tracking-tight">exemplos</span>
-            <span className="text-[10px] text-[var(--text-muted)] font-normal">
-              ({EXAMPLES.length})
-            </span>
           </div>
 
-          {examplesFolderOpen && (
-            <div className="pl-4 space-y-0.5 mt-0.5 border-l border-[var(--border-color)] ml-3.5">
-              {EXAMPLES.map((ex) => (
-                <div
-                  key={ex.id}
-                  onClick={() => onSelectExample(ex.code, ex.title)}
-                  className="flex items-center justify-between px-2 py-1 rounded cursor-pointer text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-surface)] group"
-                >
-                  <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                    <Sparkles className="w-3 h-3 text-amber-400 shrink-0" />
-                    <span className="truncate text-xs" title={ex.description}>
-                      {ex.title}.ml
+          {/* Seção External Libraries (Autêntica do IntelliJ IDEA) */}
+          <div className="mt-1">
+            <div
+              onClick={() => setLibrariesOpen(!librariesOpen)}
+              className="flex items-center gap-1.5 py-1 px-1.5 rounded-[4px] hover:bg-[#35373c] cursor-pointer text-[#868a91] hover:text-[#dfe1e5]"
+            >
+              {librariesOpen ? (
+                <ChevronDown className="w-3 h-3 text-[#868a91] shrink-0" />
+              ) : (
+                <ChevronRight className="w-3 h-3 text-[#868a91] shrink-0" />
+              )}
+              <Library className="w-3.5 h-3.5 text-[#868a91] shrink-0" />
+              <span className="text-[11px]">External Libraries (Examples)</span>
+            </div>
+
+            {/* Lista de Exemplos dentro de External Libraries */}
+            {librariesOpen && (
+              <div className="pl-4 space-y-0.5 mt-0.5 border-l border-[#393b40]/60 ml-2.5">
+                {EXAMPLES.map((ex) => (
+                  <div
+                    key={ex.id}
+                    onClick={() => onSelectExample(ex.code, ex.title)}
+                    className="flex items-center justify-between py-1 px-2 rounded-[4px] cursor-pointer text-[#868a91] hover:text-[#dfe1e5] hover:bg-[#35373c] group"
+                  >
+                    <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                      <Sparkles className="w-3 h-3 text-[#f5a623] shrink-0" />
+                      <span className="truncate text-xs font-mono" title={ex.description}>
+                        {ex.title}.ml
+                      </span>
+                    </div>
+                    <span className="text-[9px] px-1 py-0.2 rounded bg-[#1e1f22] text-[#868a91] shrink-0 ml-1">
+                      {ex.category}
                     </span>
                   </div>
-                  <span className="text-[9px] px-1 py-0.2 rounded bg-[var(--bg-panel)] text-[var(--text-muted)] border border-[var(--border-color)] shrink-0 ml-1">
-                    {ex.category}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Rodapé da Barra Lateral - Atalho IntelliJ */}
-      <div className="px-3 py-1.5 border-t border-[var(--border-color)] bg-[var(--bg-header)] text-[10px] text-[var(--text-muted)] flex items-center justify-between">
-        <span>MiniLang SDK</span>
-        <kbd className="px-1 py-0.5 rounded bg-[var(--bg-panel)] border border-[var(--border-color)] text-[9px]">
+      {/* 3. Rodapé do Project Window */}
+      <div className="h-6 px-2.5 border-t border-[#393b40] bg-[#2b2d30] text-[10px] text-[#868a91] flex items-center justify-between shrink-0">
+        <span>MiniLang SDK 0.1.0</span>
+        <kbd className="px-1 py-0.2 rounded bg-[#1e1f22] border border-[#393b40] text-[9px] text-[#868a91]">
           Alt+1
         </kbd>
       </div>
