@@ -2,12 +2,14 @@ import { useImperativeHandle, forwardRef, useMemo, useRef } from 'react';
 import CodeMirror from '@uiw/react-codemirror';
 import type { ReactCodeMirrorRef } from '@uiw/react-codemirror';
 import { keymap, EditorView } from '@codemirror/view';
+import { autocompletion } from '@codemirror/autocomplete';
 import { showMinimap } from '@replit/codemirror-minimap';
 import { miniLangLanguage } from './minilang-syntax';
 import { createErrorLinter } from './linter';
 import { getEditorThemeExtension } from './themes';
+import { createMiniLangCompletionSource } from './completion';
 import { useTheme } from '../context/ThemeContext';
-import type { ErrorItem, ThemeId } from '../types';
+import type { ErrorItem, SymbolInfo, ThemeId } from '../types';
 
 export interface CodeEditorRef {
   goToLine: (line: number, column?: number) => void;
@@ -18,11 +20,14 @@ interface CodeEditorProps {
   value: string;
   onChange: (value: string) => void;
   errors?: ErrorItem[];
+  symbols?: SymbolInfo[];
   readOnly?: boolean;
   onRunShortcut?: () => void;
+  onFormatShortcut?: () => void;
   theme?: ThemeId;
   onCursorChange?: (line: number, column: number) => void;
   showMinimap?: boolean;
+  lineWrapping?: boolean;
 }
 
 export const CodeEditor = forwardRef<CodeEditorRef, CodeEditorProps>(
@@ -31,11 +36,14 @@ export const CodeEditor = forwardRef<CodeEditorRef, CodeEditorProps>(
       value,
       onChange,
       errors = [],
+      symbols = [],
       readOnly = false,
       onRunShortcut,
+      onFormatShortcut,
       theme = 'arceus',
       onCursorChange,
       showMinimap: showMinimapProp,
+      lineWrapping,
     },
     ref
   ) => {
@@ -85,9 +93,14 @@ export const CodeEditor = forwardRef<CodeEditorRef, CodeEditorProps>(
         ...getEditorThemeExtension(theme),
         createErrorLinter(errors),
         typographyExtension,
+        autocompletion({
+          override: [createMiniLangCompletionSource(symbols)],
+          defaultKeymap: true,
+        }),
       ];
 
-      if (settings.editorLineWrapping) {
+      const effectiveLineWrapping = lineWrapping !== undefined ? lineWrapping : settings.editorLineWrapping;
+      if (effectiveLineWrapping) {
         ext.push(EditorView.lineWrapping);
       }
 
@@ -102,29 +115,54 @@ export const CodeEditor = forwardRef<CodeEditorRef, CodeEditorProps>(
         );
       }
 
+      const keymaps = [];
+
       if (onRunShortcut) {
-        ext.push(
-          keymap.of([
-            {
-              key: 'Ctrl-Enter',
-              run: () => {
-                onRunShortcut();
-                return true;
-              },
+        keymaps.push(
+          {
+            key: 'Ctrl-Enter',
+            run: () => {
+              onRunShortcut();
+              return true;
             },
-            {
-              key: 'F9',
-              run: () => {
-                onRunShortcut();
-                return true;
-              },
+          },
+          {
+            key: 'F9',
+            run: () => {
+              onRunShortcut();
+              return true;
             },
-          ])
+          }
         );
       }
 
+      if (onFormatShortcut) {
+        keymaps.push({
+          key: 'Shift-Alt-f',
+          run: () => {
+            onFormatShortcut();
+            return true;
+          },
+        });
+      }
+
+      if (keymaps.length > 0) {
+        ext.push(keymap.of(keymaps));
+      }
+
       return ext;
-    }, [theme, errors, onRunShortcut, showMinimapProp, settings.showMinimap, settings.editorLineWrapping, typographyExtension]);
+    }, [
+      theme,
+      errors,
+      symbols,
+      onRunShortcut,
+      onFormatShortcut,
+      showMinimapProp,
+      lineWrapping,
+      settings.showMinimap,
+      settings.editorLineWrapping,
+      typographyExtension,
+    ]);
 
     return (
       <div className="h-full w-full overflow-hidden bg-[var(--bg-surface)] flex flex-col">
@@ -158,7 +196,7 @@ export const CodeEditor = forwardRef<CodeEditorRef, CodeEditorProps>(
             syntaxHighlighting: true,
             bracketMatching: true,
             closeBrackets: true,
-            autocompletion: true,
+            autocompletion: false,
             rectangularSelection: true,
             crosshairCursor: true,
             highlightActiveLine: true,
