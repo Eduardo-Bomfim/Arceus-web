@@ -1,251 +1,381 @@
-import React, { useMemo } from 'react';
-import { Network, Play, CheckCircle, ArrowDown, HelpCircle, Repeat, CornerDownRight } from 'lucide-react';
+import React, { useMemo, useEffect, useRef, useCallback } from 'react';
+import {
+  ReactFlow,
+  ReactFlowProvider,
+  useReactFlow,
+  MiniMap,
+  Controls,
+  Background,
+  BackgroundVariant,
+  MarkerType,
+} from '@xyflow/react';
+import type { Node, Edge, NodeTypes } from '@xyflow/react';
+import '@xyflow/react/dist/style.css';
+
+import { Network, Maximize2 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
+import type { CfgNodeData } from './cfg/types';
+import { getLayoutedElements } from './cfg/layout';
+import { StartNode } from './cfg/StartNode';
+import { EndNode } from './cfg/EndNode';
+import { BlockNode } from './cfg/BlockNode';
+import { ConditionNode } from './cfg/ConditionNode';
+import { LoopNode } from './cfg/LoopNode';
 
 interface CfgPanelProps {
   sourceCode: string;
   astRaw: string | null;
   isLoading?: boolean;
+  activeLine?: number;
+  onNodeClick?: (startLine: number, endLine?: number) => void;
 }
 
-interface CfgNode {
-  id: string;
-  type: 'start' | 'decl' | 'stmt' | 'condition' | 'loop' | 'end';
-  label: string;
-  details?: string;
-  trueBranch?: string;
-  falseBranch?: string;
-  loopBack?: boolean;
-}
+const nodeTypes: NodeTypes = {
+  start: StartNode as unknown as React.ComponentType<any>,
+  end: EndNode as unknown as React.ComponentType<any>,
+  block: BlockNode as unknown as React.ComponentType<any>,
+  condition: ConditionNode as unknown as React.ComponentType<any>,
+  loop: LoopNode as unknown as React.ComponentType<any>,
+};
 
 /**
- * Constrói o Grafo de Fluxo de Controle (CFG) a partir da análise da AST e código fonte.
+ * Construtor determinístico de nós e arestas do CFG para MiniLang
  */
-function buildControlFlowGraph(source: string, ast: string | null): CfgNode[] {
-  if (!ast || !source) return [];
+function buildGraphModel(
+  source: string,
+  _ast: string | null,
+  activeLine?: number,
+  onNodeClick?: (startLine: number, endLine?: number) => void
+): { rawNodes: Node<CfgNodeData>[]; rawEdges: Edge[] } {
+  if (!source || !source.trim()) {
+    return { rawNodes: [], rawEdges: [] };
+  }
 
-  const nodes: CfgNode[] = [];
+  const rawNodes: Node<CfgNodeData>[] = [];
+  const rawEdges: Edge[] = [];
 
-  // 1. Nó de Início
-  nodes.push({
-    id: 'node_start',
+  const rawLines = source.split('\n');
+
+  // Nó Inicial
+  const startId = 'node_start';
+  rawNodes.push({
+    id: startId,
     type: 'start',
-    label: 'Início do Programa',
-    details: 'Ponto de entrada da execução MiniLang',
+    position: { x: 0, y: 0 },
+    data: {
+      label: 'Início do Programa',
+      startLine: 1,
+      endLine: 1,
+      isActive: activeLine === 1,
+      onNodeClick,
+    },
   });
 
-  // Extrai declarações e comandos principais do código
-  const lines = source.split('\n').map((l) => l.trim()).filter((l) => l && !l.startsWith('#'));
+  let lastNodeId = startId;
+  let currentBlockLines: string[] = [];
+  let blockStartLine = 1;
 
-  let currentBlock: string[] = [];
-
-  const flushCurrentBlock = () => {
-    if (currentBlock.length > 0) {
-      nodes.push({
-        id: `node_block_${nodes.length}`,
-        type: 'stmt',
-        label: 'Bloco de Instruções Lineares',
-        details: currentBlock.join('\n'),
+  const flushBlock = (endLine: number) => {
+    if (currentBlockLines.length > 0) {
+      const blockId = `node_block_${rawNodes.length}`;
+      rawNodes.push({
+        id: blockId,
+        type: 'block',
+        position: { x: 0, y: 0 },
+        data: {
+          label: 'Bloco Linear',
+          instructions: [...currentBlockLines],
+          startLine: blockStartLine,
+          endLine: Math.max(blockStartLine, endLine),
+          isActive: activeLine !== undefined && activeLine >= blockStartLine && activeLine <= endLine,
+          onNodeClick,
+        },
       });
-      currentBlock = [];
+
+      rawEdges.push({
+        id: `e_${lastNodeId}_${blockId}`,
+        source: lastNodeId,
+        target: blockId,
+        type: 'smoothstep',
+        markerEnd: { type: MarkerType.ArrowClosed },
+      });
+
+      lastNodeId = blockId;
+      currentBlockLines = [];
     }
   };
 
-  for (const line of lines) {
+  for (let i = 0; i < rawLines.length; i++) {
+    const lineNum = i + 1;
+    const line = rawLines[i].trim();
+
+    if (!line || line.startsWith('#')) {
+      continue;
+    }
+
     if (line.startsWith('programa ') || line === '{' || line === '}' || line.startsWith('fim.')) {
       continue;
     }
 
-    if (line.startsWith('var ')) {
-      currentBlock.push(line);
-    } else if (line.startsWith('se ') || line.startsWith('se(')) {
-      flushCurrentBlock();
-      nodes.push({
-        id: `node_cond_${nodes.length}`,
+    if (line.startsWith('se ') || line.startsWith('se(')) {
+      flushBlock(lineNum - 1);
+
+      const condId = `node_cond_${rawNodes.length}`;
+      const condExpr = line.replace(/\{.*/, '').trim();
+
+      rawNodes.push({
+        id: condId,
         type: 'condition',
-        label: 'Desvio Condicional (se)',
-        details: line.replace(/\{.*/, '').trim(),
+        position: { x: 0, y: 0 },
+        data: {
+          label: 'Desvio (se)',
+          condition: condExpr,
+          startLine: lineNum,
+          endLine: lineNum,
+          isActive: activeLine === lineNum,
+          onNodeClick,
+        },
       });
-    } else if (line.startsWith('senão') || line.startsWith('senao')) {
-      flushCurrentBlock();
-      nodes.push({
-        id: `node_else_${nodes.length}`,
-        type: 'condition',
-        label: 'Ramo Falso (senão)',
-        details: 'Executado quando a condição for falsa',
+
+      rawEdges.push({
+        id: `e_${lastNodeId}_${condId}`,
+        source: lastNodeId,
+        target: condId,
+        type: 'smoothstep',
+        markerEnd: { type: MarkerType.ArrowClosed },
       });
-    } else if (line.startsWith('enquanto ') || line.startsWith('enquanto(')) {
-      flushCurrentBlock();
-      nodes.push({
-        id: `node_while_${nodes.length}`,
+
+      lastNodeId = condId;
+    } else if (
+      line.startsWith('enquanto ') ||
+      line.startsWith('enquanto(') ||
+      line.startsWith('para ') ||
+      line.startsWith('repita')
+    ) {
+      flushBlock(lineNum - 1);
+
+      const loopId = `node_loop_${rawNodes.length}`;
+      const loopExpr = line.replace(/\{.*/, '').trim();
+
+      rawNodes.push({
+        id: loopId,
         type: 'loop',
-        label: "Laço Pré-testado (enquanto)",
-        details: line.replace(/\{.*/, '').trim(),
-        loopBack: true,
+        position: { x: 0, y: 0 },
+        data: {
+          label: line.startsWith('para')
+            ? 'Laço Contado (para)'
+            : line.startsWith('repita')
+            ? 'Laço Pós-testado (repita)'
+            : 'Laço Pré-testado (enquanto)',
+          condition: loopExpr,
+          startLine: lineNum,
+          endLine: lineNum,
+          isActive: activeLine === lineNum,
+          onNodeClick,
+        },
       });
-    } else if (line.startsWith('para ')) {
-      flushCurrentBlock();
-      nodes.push({
-        id: `node_for_${nodes.length}`,
-        type: 'loop',
-        label: "Laço Contado (para ... ate ... passo)",
-        details: line.replace(/\{.*/, '').trim(),
-        loopBack: true,
+
+      rawEdges.push({
+        id: `e_${lastNodeId}_${loopId}`,
+        source: lastNodeId,
+        target: loopId,
+        type: 'smoothstep',
+        markerEnd: { type: MarkerType.ArrowClosed },
       });
-    } else if (line.startsWith('repita')) {
-      flushCurrentBlock();
-      nodes.push({
-        id: `node_repeat_${nodes.length}`,
-        type: 'loop',
-        label: "Início do Laço Pós-testado (repita)",
-        details: 'Executa o corpo antes de testar a condição',
-      });
-    } else if (line.startsWith('ate ') || line.startsWith('ate(')) {
-      flushCurrentBlock();
-      nodes.push({
-        id: `node_ate_${nodes.length}`,
-        type: 'loop',
-        label: "Condição de Parada (ate)",
-        details: line.trim(),
-        loopBack: true,
-      });
+
+      lastNodeId = loopId;
     } else {
-      currentBlock.push(line);
+      if (currentBlockLines.length === 0) {
+        blockStartLine = lineNum;
+      }
+      currentBlockLines.push(line);
     }
   }
 
-  flushCurrentBlock();
+  flushBlock(rawLines.length);
 
   // Nó Final
-  nodes.push({
-    id: 'node_end',
+  const endId = 'node_end';
+  rawNodes.push({
+    id: endId,
     type: 'end',
-    label: 'Fim do Programa',
-    details: 'Encerramento com código de saída 0',
+    position: { x: 0, y: 0 },
+    data: {
+      label: 'Fim do Programa',
+      startLine: rawLines.length,
+      endLine: rawLines.length,
+      isActive: activeLine === rawLines.length,
+      onNodeClick,
+    },
   });
 
-  return nodes;
+  rawEdges.push({
+    id: `e_${lastNodeId}_${endId}`,
+    source: lastNodeId,
+    target: endId,
+    type: 'smoothstep',
+    markerEnd: { type: MarkerType.ArrowClosed },
+  });
+
+  return { rawNodes, rawEdges };
+}
+
+/**
+ * Componente interno do React Flow que gerencia a preservação de viewport
+ */
+function CfgFlowCanvas({
+  sourceCode,
+  astRaw,
+  activeLine,
+  onNodeClick,
+}: {
+  sourceCode: string;
+  astRaw: string | null;
+  activeLine?: number;
+  onNodeClick?: (startLine: number, endLine?: number) => void;
+}) {
+  const { themeConfig } = useTheme();
+  const { getViewport, setViewport, fitView } = useReactFlow();
+
+  const isInitializedRef = useRef(false);
+  const prevViewportRef = useRef<{ x: number; y: number; zoom: number } | null>(null);
+
+  const { layoutedNodes, layoutedEdges } = useMemo(() => {
+    const { rawNodes, rawEdges } = buildGraphModel(
+      sourceCode,
+      astRaw,
+      activeLine,
+      onNodeClick
+    );
+    const { nodes, edges } = getLayoutedElements(rawNodes, rawEdges, 'TB');
+    return { layoutedNodes: nodes, layoutedEdges: edges };
+  }, [sourceCode, astRaw, activeLine, onNodeClick]);
+
+  // Preservação de Viewport (TASK-2.4)
+  useEffect(() => {
+    if (!layoutedNodes || layoutedNodes.length === 0) return;
+
+    if (!isInitializedRef.current) {
+      // Primeira inicialização: ajusta para caber todos os nós
+      setTimeout(() => {
+        fitView({ padding: 0.2, duration: 400 });
+        isInitializedRef.current = true;
+      }, 50);
+    } else if (prevViewportRef.current) {
+      // Atualizações de digitação subsequentes: restaura viewport anterior sem pular a câmera
+      setViewport(prevViewportRef.current, { duration: 0 });
+    }
+  }, [layoutedNodes, fitView, setViewport]);
+
+  const handleViewportChange = useCallback(() => {
+    if (isInitializedRef.current) {
+      prevViewportRef.current = getViewport();
+    }
+  }, [getViewport]);
+
+  const handleFitView = useCallback(() => {
+    fitView({ padding: 0.2, duration: 300 });
+  }, [fitView]);
+
+  return (
+    <div className="relative w-full h-full">
+      {/* Botão de Fit View Rápido */}
+      <div className="absolute top-2.5 right-2.5 z-10 flex items-center gap-1.5">
+        <button
+          onClick={handleFitView}
+          title="Enquadrar Grafo Completo (Fit View)"
+          className="p-1.5 rounded-lg bg-[var(--bg-surface)] hover:bg-[var(--bg-subtle)] text-[var(--text-muted)] hover:text-white transition border border-[var(--border-color)] shadow-md text-xs flex items-center gap-1"
+        >
+          <Maximize2 className="w-3.5 h-3.5" />
+          <span className="text-[10px] hidden sm:inline">Enquadrar</span>
+        </button>
+      </div>
+
+      <ReactFlow
+        nodes={layoutedNodes}
+        edges={layoutedEdges}
+        nodeTypes={nodeTypes}
+        onMoveEnd={handleViewportChange}
+        fitViewOptions={{ padding: 0.2 }}
+        minZoom={0.2}
+        maxZoom={2.5}
+        proOptions={{ hideAttribution: true }}
+        className="bg-[var(--bg-panel)]"
+      >
+        <Background
+          variant={BackgroundVariant.Dots}
+          gap={18}
+          size={1.5}
+          color="rgba(148, 163, 184, 0.12)"
+        />
+        <Controls
+          showInteractive={false}
+          className="!bg-[var(--bg-surface)] !border-[var(--border-color)] !shadow-xl !rounded-lg overflow-hidden [&>button]:!bg-transparent [&>button]:!border-b [&>button]:!border-[var(--border-color)] [&>button]:!text-[var(--text-main)] hover:[&>button]:!bg-[var(--bg-subtle)]"
+        />
+        <MiniMap
+          nodeStrokeWidth={3}
+          nodeColor={(node) => {
+            if (node.type === 'start') return '#10b981';
+            if (node.type === 'end') return '#64748b';
+            if (node.type === 'condition') return '#f59e0b';
+            if (node.type === 'loop') return '#6366f1';
+            return themeConfig.primaryColor;
+          }}
+          className="!bg-[var(--bg-surface)] !border-[var(--border-color)] !rounded-lg !shadow-xl"
+          maskColor="rgba(0, 0, 0, 0.65)"
+        />
+      </ReactFlow>
+    </div>
+  );
 }
 
 export const CfgPanel = React.memo(function CfgPanel({
   sourceCode,
   astRaw,
   isLoading,
+  activeLine,
+  onNodeClick,
 }: CfgPanelProps) {
   const { themeConfig } = useTheme();
 
-  const cfgNodes = useMemo(() => {
-    return buildControlFlowGraph(sourceCode, astRaw);
-  }, [sourceCode, astRaw]);
-
   if (isLoading) {
     return (
-      <div className="flex flex-col h-full items-center justify-center p-8 space-y-3">
-        <div className="w-8 h-8 rounded-full border-2 border-sky-400 border-t-transparent animate-spin" />
-        <span className="text-xs text-slate-400">Gerando Grafo de Fluxo de Controle...</span>
-      </div>
-    );
-  }
-
-  if (cfgNodes.length <= 2) {
-    return (
-      <div className="flex h-full items-center justify-center text-slate-500 italic p-6 text-xs text-center">
-        Escreva ou carregue um programa e execute a análise (F9) para visualizar o Grafo de Fluxo de Controle (CFG).
+      <div className="flex flex-col h-full items-center justify-center p-8 space-y-3 bg-[var(--bg-panel)] text-[var(--text-main)]">
+        <div className="w-8 h-8 rounded-full border-2 border-[var(--accent-primary)] border-t-transparent animate-spin" />
+        <span className="text-xs text-[var(--text-muted)]">
+          Calculando layout hierárquico com Dagre & React Flow...
+        </span>
       </div>
     );
   }
 
   return (
     <div className="flex flex-col h-full bg-[var(--bg-panel)] text-[var(--text-main)] font-mono text-xs overflow-hidden select-text">
-      {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2 bg-[var(--bg-header)] border-b border-[var(--border-color)] select-none">
+      {/* Header com Metadados e Tema */}
+      <div className="flex items-center justify-between px-3.5 py-2 bg-[var(--bg-header)] border-b border-[var(--border-color)] select-none">
         <div className="flex items-center gap-2">
           <Network className="w-3.5 h-3.5" style={{ color: themeConfig.primaryColor }} />
-          <span className="font-semibold text-slate-200">
-            Grafo de Fluxo de Controle (CFG Didático)
+          <span className="font-semibold text-[var(--text-main)]">
+            Grafo de Fluxo de Controle Interativo (CFG • React Flow + Dagre)
           </span>
         </div>
-        <span className="text-[11px] text-[var(--text-muted)]">
-          {cfgNodes.length} nós de controle identificados
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] text-[var(--text-muted)]">
+            Zoom, pan, minimap &amp; sync bidirecional
+          </span>
+        </div>
       </div>
 
-      {/* Diagrama de Nós do Fluxo */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
-        {cfgNodes.map((node, index) => {
-          const isStart = node.type === 'start';
-          const isEnd = node.type === 'end';
-          const isCondition = node.type === 'condition';
-          const isLoop = node.type === 'loop';
-
-          return (
-            <div key={node.id} className="flex flex-col items-center">
-              {/* Card do Nó */}
-              <div
-                className={`w-full max-w-md p-3 rounded-lg border transition shadow-sm ${
-                  isStart
-                    ? 'bg-emerald-950/40 border-emerald-700/60 text-emerald-300'
-                    : isEnd
-                    ? 'bg-slate-900 border-slate-700 text-slate-300'
-                    : isCondition
-                    ? 'bg-amber-950/30 border-amber-600/50 text-amber-200'
-                    : isLoop
-                    ? 'bg-indigo-950/30 border-indigo-600/50 text-indigo-200'
-                    : 'bg-[var(--bg-surface)] border-[var(--border-color)] text-[var(--text-main)]'
-                }`}
-              >
-                <div className="flex items-center justify-between gap-2 mb-1">
-                  <div className="flex items-center gap-1.5 font-bold text-xs">
-                    {isStart && <Play className="w-3 h-3 fill-emerald-400 text-emerald-400" />}
-                    {isEnd && <CheckCircle className="w-3 h-3 text-slate-400" />}
-                    {isCondition && <HelpCircle className="w-3 h-3 text-amber-400" />}
-                    {isLoop && <Repeat className="w-3 h-3 text-indigo-400" />}
-                    <span>{node.label}</span>
-                  </div>
-
-                  <span className="text-[9px] px-1.5 py-0.2 rounded bg-black/30 text-[var(--text-muted)] font-mono">
-                    Nó #{index + 1}
-                  </span>
-                </div>
-
-                {node.details && (
-                  <pre className="text-[11px] opacity-90 whitespace-pre-wrap font-mono leading-relaxed bg-black/25 p-2 rounded mt-1 overflow-x-auto">
-                    {node.details}
-                  </pre>
-                )}
-
-                {/* Badges de bifurcação se for condicional ou laço */}
-                {isCondition && (
-                  <div className="flex items-center gap-2 mt-2 pt-1 border-t border-amber-900/40 text-[10px]">
-                    <span className="flex items-center gap-0.5 text-emerald-400 font-semibold">
-                      <CornerDownRight className="w-3 h-3" /> Verdadeiro: executa bloco
-                    </span>
-                    <span className="text-slate-500">•</span>
-                    <span className="text-rose-400 font-semibold">Falso: desvia fluxo</span>
-                  </div>
-                )}
-
-                {isLoop && (
-                  <div className="flex items-center gap-2 mt-2 pt-1 border-t border-indigo-900/40 text-[10px]">
-                    <span className="flex items-center gap-0.5 text-sky-400 font-semibold">
-                      <Repeat className="w-3 h-3" /> Itera enquanto verdadeiro
-                    </span>
-                    <span className="text-slate-500">•</span>
-                    <span className="text-slate-400">Sai ao término</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Seta de Conexão com o próximo nó */}
-              {index < cfgNodes.length - 1 && (
-                <div className="flex flex-col items-center my-1 text-[var(--border-color)]">
-                  <div className="w-0.5 h-3 bg-current" />
-                  <ArrowDown className="w-3.5 h-3.5 -mt-1 text-slate-500" />
-                </div>
-              )}
-            </div>
-          );
-        })}
+      {/* Área do Grafo com ReactFlowProvider */}
+      <div className="flex-1 w-full h-full overflow-hidden">
+        <ReactFlowProvider>
+          <CfgFlowCanvas
+            sourceCode={sourceCode}
+            astRaw={astRaw}
+            activeLine={activeLine}
+            onNodeClick={onNodeClick}
+          />
+        </ReactFlowProvider>
       </div>
     </div>
   );

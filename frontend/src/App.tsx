@@ -450,6 +450,7 @@ function IdeWorkspace() {
                       optimizedAst={analysisData?.ast_optimized ?? null}
                       optimizeEnabled={optimize}
                       isLoading={isAnalyzing}
+                      onSelectLine={(line) => editorRef.current?.goToLine(line)}
                     />
                   )}
 
@@ -458,6 +459,8 @@ function IdeWorkspace() {
                       sourceCode={activeContent}
                       astRaw={analysisData?.ast_optimized ?? analysisData?.ast_raw ?? null}
                       isLoading={isAnalyzing}
+                      activeLine={cursorPos.line}
+                      onNodeClick={(startLine) => editorRef.current?.goToLine(startLine)}
                     />
                   )}
 
