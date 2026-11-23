@@ -272,11 +272,11 @@ export function CommandPalette({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-2xl bg-[#2b2d30] border border-[#393b40] rounded-[8px] shadow-2xl overflow-hidden flex flex-col font-sans select-none"
+        className="w-full max-w-2xl bg-[var(--bg-panel)] border border-[var(--border-color)] rounded-[8px] shadow-2xl overflow-hidden flex flex-col font-sans select-none transition-colors"
         onClick={(e) => e.stopPropagation()}
       >
         {/* 1. Header do JetBrains Search Everywhere com Abas */}
-        <div className="flex items-center justify-between px-3 pt-2 pb-1.5 border-b border-[#393b40] bg-[#2b2d30]">
+        <div className="flex items-center justify-between px-3 pt-2 pb-1.5 border-b border-[var(--border-color)] bg-[var(--bg-header)]">
           {/* Abas Superiores do JetBrains Search Everywhere */}
           <div className="flex items-center gap-1 text-xs">
             {(['All', 'Actions', 'Files', 'Examples', 'Themes'] as FilterTab[]).map((tab) => (
@@ -288,8 +288,8 @@ export function CommandPalette({
                 }}
                 className={`px-2.5 py-1 rounded-[4px] font-medium transition ${
                   currentTab === tab
-                    ? 'bg-[#1e1f22] text-[#dfe1e5] shadow-sm'
-                    : 'text-[#868a91] hover:text-[#dfe1e5] hover:bg-[#35373c]'
+                    ? 'bg-[var(--bg-surface)] text-[var(--text-main)] shadow-sm'
+                    : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-subtle)]'
                 }`}
               >
                 {tab}
@@ -297,14 +297,14 @@ export function CommandPalette({
             ))}
           </div>
 
-          <span className="text-[10px] text-[#868a91] font-mono">
+          <span className="text-[10px] text-[var(--text-muted)] font-mono">
             Tab to switch tabs
           </span>
         </div>
 
         {/* 2. Campo de Busca JetBrains */}
-        <div className="p-2.5 bg-[#1e1f22] flex items-center gap-2 border-b border-[#393b40]">
-          <Search className="w-4 h-4 text-[#868a91] shrink-0" />
+        <div className="p-2.5 bg-[var(--bg-app)] flex items-center gap-2 border-b border-[var(--border-color)]">
+          <Search className="w-4 h-4 text-[var(--text-muted)] shrink-0" />
           <input
             ref={inputRef}
             type="text"
@@ -315,12 +315,12 @@ export function CommandPalette({
             }}
             onKeyDown={handleKeyDown}
             placeholder="Type to search everywhere... (e.g. run, file, theme)"
-            className="flex-1 bg-transparent border-none outline-none text-[#dfe1e5] placeholder-[#868a91] text-xs font-sans focus:ring-0"
+            className="flex-1 bg-transparent border-none outline-none text-[var(--text-main)] placeholder-[var(--text-muted)] text-xs font-sans focus:ring-0"
           />
           {query && (
             <button
               onClick={() => setQuery('')}
-              className="text-[#868a91] hover:text-[#dfe1e5] text-xs px-1"
+              className="text-[var(--text-muted)] hover:text-[var(--text-main)] text-xs px-1"
             >
               ✕
             </button>
@@ -328,9 +328,9 @@ export function CommandPalette({
         </div>
 
         {/* 3. Lista de Resultados com Visual JetBrains */}
-        <div className="max-h-96 overflow-y-auto divide-y divide-[#393b40]/30 py-1 bg-[#2b2d30]">
+        <div className="max-h-96 overflow-y-auto divide-y divide-[var(--border-color)]/30 py-1 bg-[var(--bg-panel)]">
           {filteredCommands.length === 0 ? (
-            <div className="p-8 text-center text-[#868a91] text-xs">
+            <div className="p-8 text-center text-[var(--text-muted)] text-xs">
               No matching actions or files found for &quot;{query}&quot;
             </div>
           ) : (
@@ -347,8 +347,8 @@ export function CommandPalette({
                   onMouseEnter={() => setSelectedIndex(idx)}
                   className={`flex items-center justify-between px-3.5 py-2 cursor-pointer transition text-xs ${
                     isSelected
-                      ? 'bg-[#2e436e] text-white'
-                      : 'text-[#dfe1e5] hover:bg-[#35373c]'
+                      ? 'bg-[var(--accent-primary)]/20 text-[var(--text-main)] font-semibold'
+                      : 'text-[var(--text-main)] hover:bg-[var(--bg-subtle)]'
                   }`}
                 >
                   <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -358,7 +358,7 @@ export function CommandPalette({
                       {cmd.detail && (
                         <span
                           className={`text-[11px] truncate ${
-                            isSelected ? 'text-white/80' : 'text-[#868a91]'
+                            isSelected ? 'text-[var(--text-main)]/80' : 'text-[var(--text-muted)]'
                           }`}
                         >
                           {cmd.detail}
@@ -371,8 +371,8 @@ export function CommandPalette({
                     <kbd
                       className={`text-[10px] px-1.5 py-0.5 rounded font-mono ml-2 shrink-0 ${
                         isSelected
-                          ? 'bg-[#1e1f22] text-white border border-[#3574f0]'
-                          : 'bg-[#1e1f22] text-[#868a91] border border-[#393b40]'
+                          ? 'bg-[var(--bg-app)] text-[var(--text-main)] border border-[var(--accent-primary)]'
+                          : 'bg-[var(--bg-app)] text-[var(--text-muted)] border border-[var(--border-color)]'
                       }`}
                     >
                       {cmd.shortcut}
@@ -385,7 +385,7 @@ export function CommandPalette({
         </div>
 
         {/* 4. Rodapé com Atalhos de Navegação */}
-        <div className="px-3.5 py-2 bg-[#2b2d30] border-t border-[#393b40] text-[10px] text-[#868a91] flex items-center justify-between">
+        <div className="px-3.5 py-2 bg-[var(--bg-header)] border-t border-[var(--border-color)] text-[10px] text-[var(--text-muted)] flex items-center justify-between">
           <div className="flex items-center gap-3">
             <span>↑↓ to navigate</span>
             <span>↵ to select</span>

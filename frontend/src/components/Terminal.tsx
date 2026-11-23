@@ -91,9 +91,9 @@ export function Terminal({
   const isRunning = status === 'RUNNING' || status === 'WAITING_INPUT' || status === 'CONNECTING';
 
   return (
-    <div className="flex h-full bg-[#1e1f22] text-[#dfe1e5] font-mono text-xs select-text overflow-hidden">
+    <div className="flex h-full bg-[var(--bg-surface)] text-[var(--text-main)] font-mono text-xs select-text overflow-hidden transition-colors">
       {/* 1. Barra de Ações Vertical Esquerda (A icônica Left Toolbar da janela Run do JetBrains) */}
-      <div className="w-8 bg-[#2b2d30] border-r border-[#393b40] flex flex-col items-center py-1.5 gap-1 shrink-0 select-none z-10">
+      <div className="w-8 bg-[var(--bg-header)] border-r border-[var(--border-color)] flex flex-col items-center py-1.5 gap-1 shrink-0 select-none z-10">
         {/* Botão Rerun (Executar novamente) */}
         <button
           onClick={onRerun}
@@ -101,8 +101,8 @@ export function Terminal({
           title="Rerun 'main.ml' (F9 ou Ctrl+F5)"
           className={`p-1 rounded-[4px] transition ${
             !isRunning
-              ? 'text-[#59a869] hover:bg-[#35373c]'
-              : 'text-[#4b5059] cursor-not-allowed'
+              ? 'text-[var(--accent-secondary)] hover:bg-[var(--bg-subtle)]'
+              : 'text-[var(--text-muted)]/40 cursor-not-allowed'
           }`}
         >
           <RotateCw className="w-3.5 h-3.5" />
@@ -115,20 +115,20 @@ export function Terminal({
           title="Stop Process (Ctrl+F2 ou Escape)"
           className={`p-1 rounded-[4px] transition ${
             isRunning
-              ? 'text-[#f75464] hover:bg-[#f75464]/20 animate-pulse'
-              : 'text-[#4b5059] cursor-not-allowed'
+              ? 'text-red-400 hover:bg-red-500/20 animate-pulse'
+              : 'text-[var(--text-muted)]/40 cursor-not-allowed'
           }`}
         >
           <Square className="w-3.5 h-3.5 fill-current" />
         </button>
 
-        <div className="w-4 h-[1px] bg-[#393b40] my-0.5" />
+        <div className="w-4 h-[1px] bg-[var(--border-color)] my-0.5" />
 
         {/* Botão Limpar Console */}
         <button
           onClick={onClear}
           title="Clear All (Ctrl+L)"
-          className="p-1 rounded-[4px] text-[#868a91] hover:text-[#dfe1e5] hover:bg-[#35373c] transition"
+          className="p-1 rounded-[4px] text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-subtle)] transition"
         >
           <Trash2 className="w-3.5 h-3.5" />
         </button>
@@ -138,7 +138,7 @@ export function Terminal({
           onClick={() => setSoftWrap(!softWrap)}
           title={softWrap ? 'Disable Soft-Wrap' : 'Use Soft-Wrap'}
           className={`p-1 rounded-[4px] transition ${
-            softWrap ? 'text-[#3574f0] bg-[#35373c]' : 'text-[#868a91] hover:text-[#dfe1e5]'
+            softWrap ? 'text-[var(--accent-primary)] bg-[var(--bg-subtle)]' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
           }`}
         >
           <WrapText className="w-3.5 h-3.5" />
@@ -148,7 +148,7 @@ export function Terminal({
         <button
           onClick={scrollToBottom}
           title="Scroll to the End"
-          className="p-1 rounded-[4px] text-[#868a91] hover:text-[#dfe1e5] hover:bg-[#35373c] transition"
+          className="p-1 rounded-[4px] text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-subtle)] transition"
         >
           <ArrowDownToLine className="w-3.5 h-3.5" />
         </button>
@@ -163,14 +163,14 @@ export function Terminal({
         onClick={() => inputRef.current?.focus()}
       >
         {/* Linha de Comando de Invocação Estilo JetBrains */}
-        <div className="text-[#868a91] text-[11px] select-none pb-1 border-b border-[#2b2d30]">
-          <span className="text-[#6f737a]">&quot;C:\MiniLang\bin\arceus.exe&quot;</span> run src\main.ml
+        <div className="text-[var(--text-muted)] text-[11px] select-none pb-1 border-b border-[var(--border-color)]">
+          <span className="opacity-70">&quot;C:\MiniLang\bin\arceus.exe&quot;</span> run src\main.ml
         </div>
 
         {/* Mensagem Inicial quando Ocioso */}
         {messages.length === 0 && !waitingInput && status === 'IDLE' && (
-          <div className="text-[#868a91] py-2 text-[11px]">
-            Press <kbd className="px-1 py-0.5 bg-[#2b2d30] border border-[#393b40] rounded text-[#dfe1e5]">F9</kbd> or click the green <span className="text-[#59a869] font-semibold">Run</span> button to execute MiniLang.
+          <div className="text-[var(--text-muted)] py-2 text-[11px]">
+            Press <kbd className="px-1 py-0.5 bg-[var(--bg-header)] border border-[var(--border-color)] rounded text-[var(--text-main)]">F9</kbd> or click the green <span className="text-[var(--accent-secondary)] font-semibold">Run</span> button to execute MiniLang.
           </div>
         )}
 
@@ -178,30 +178,30 @@ export function Terminal({
         {messages.map((msg) => {
           if (msg.type === 'stdout') {
             return (
-              <div key={msg.id} className="text-[#dfe1e5] text-xs">
+              <div key={msg.id} className="text-[var(--text-main)] text-xs">
                 {msg.text}
               </div>
             );
           }
           if (msg.type === 'stdin') {
             return (
-              <div key={msg.id} className="text-[#cf8e6d] text-xs font-semibold">
+              <div key={msg.id} className="text-amber-400 text-xs font-semibold">
                 {msg.text}
               </div>
             );
           }
           if (msg.type === 'system') {
             return (
-              <div key={msg.id} className="text-[#868a91] text-[11px] flex items-center gap-1.5 py-0.5">
-                <Info className="w-3 h-3 text-[#3574f0]" />
+              <div key={msg.id} className="text-[var(--text-muted)] text-[11px] flex items-center gap-1.5 py-0.5">
+                <Info className="w-3 h-3 text-[var(--accent-primary)]" />
                 <span>{msg.text}</span>
               </div>
             );
           }
           if (msg.type === 'error') {
             return (
-              <div key={msg.id} className="text-[#f75464] text-xs flex items-start gap-1.5 py-0.5">
-                <AlertCircle className="w-3.5 h-3.5 text-[#f75464] shrink-0 mt-0.5" />
+              <div key={msg.id} className="text-red-400 text-xs flex items-start gap-1.5 py-0.5">
+                <AlertCircle className="w-3.5 h-3.5 text-red-400 shrink-0 mt-0.5" />
                 <span className="font-medium">{msg.text}</span>
               </div>
             );
@@ -213,9 +213,9 @@ export function Terminal({
         {waitingInput && (
           <form
             onSubmit={handleSubmit}
-            className="flex items-center gap-2 mt-2 py-1 px-2 rounded-[4px] bg-[#2b2d30] border border-[#3574f0]/50"
+            className="flex items-center gap-2 mt-2 py-1 px-2 rounded-[4px] bg-[var(--bg-header)] border border-[var(--accent-primary)]/50"
           >
-            <span className="text-[#cf8e6d] font-semibold text-xs">
+            <span className="text-amber-400 font-semibold text-xs">
               input &apos;{waitingInput.varName}&apos; ({waitingInput.expectedType}):
             </span>
             <input
@@ -224,13 +224,13 @@ export function Terminal({
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={handleInputKeyDown}
-              className="flex-1 bg-transparent border-none outline-none text-[#dfe1e5] font-mono text-xs focus:ring-0"
+              className="flex-1 bg-transparent border-none outline-none text-[var(--text-main)] font-mono text-xs focus:ring-0"
               placeholder={waitingInput.expectedType === 'INTEIRO' ? 'Ex.: 42' : 'verdadeiro / falso'}
               autoFocus
             />
             <button
               type="submit"
-              className="p-1 text-[#3574f0] hover:text-white rounded transition"
+              className="p-1 text-[var(--accent-primary)] hover:text-white rounded transition"
               title="Send Input (Enter)"
             >
               <CornerDownLeft className="w-3.5 h-3.5" />
@@ -240,20 +240,20 @@ export function Terminal({
 
         {/* Indicador de Status de Processo do JetBrains (Process finished with exit code X) */}
         {status === 'RUNNING' && (
-          <div className="flex items-center gap-1.5 text-[#868a91] text-[11px] pt-1">
-            <Loader2 className="w-3 h-3 animate-spin text-[#3574f0]" />
+          <div className="flex items-center gap-1.5 text-[var(--text-muted)] text-[11px] pt-1">
+            <Loader2 className="w-3 h-3 animate-spin text-[var(--accent-primary)]" />
             <span>Running...</span>
           </div>
         )}
 
         {status === 'FINISHED' && exitCode === 0 && (
-          <div className="text-[#59a869] text-[11px] pt-2 select-none border-t border-[#2b2d30] mt-2">
+          <div className="text-[var(--accent-secondary)] text-[11px] pt-2 select-none border-t border-[var(--border-color)] mt-2">
             Process finished with exit code 0 ({durationMs ?? 0} ms)
           </div>
         )}
 
         {status === 'FINISHED' && exitCode !== 0 && (
-          <div className="text-[#f75464] text-[11px] pt-2 select-none border-t border-[#2b2d30] mt-2">
+          <div className="text-red-400 text-[11px] pt-2 select-none border-t border-[var(--border-color)] mt-2">
             Process finished with exit code {exitCode}
           </div>
         )}

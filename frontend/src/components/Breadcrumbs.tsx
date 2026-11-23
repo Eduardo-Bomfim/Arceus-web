@@ -3,7 +3,7 @@ import {
   Folder,
   ChevronRight,
   Code2,
-  GitBranch,
+  Workflow,
   Repeat,
 } from 'lucide-react';
 
@@ -99,27 +99,27 @@ export const Breadcrumbs = React.memo(function Breadcrumbs({
   return (
     <nav
       aria-label="Navigation Bar"
-      className="h-6 px-3 bg-[#1e1f22] border-b border-[#2b2d30] flex items-center gap-1.5 text-[11px] text-[#868a91] select-none overflow-x-auto no-scrollbar font-mono shrink-0"
+      className="h-6 px-3 bg-[var(--bg-panel)] border-b border-[var(--border-color)] flex items-center gap-1.5 text-[11px] text-[var(--text-muted)] select-none overflow-x-auto no-scrollbar font-mono shrink-0 transition-colors"
     >
       {/* Root Project Directory */}
-      <div className="flex items-center gap-1 hover:text-[#dfe1e5] cursor-pointer transition">
-        <Folder className="w-3 h-3 text-[#3574f0]" />
+      <div className="flex items-center gap-1 hover:text-[var(--text-main)] cursor-pointer transition">
+        <Folder className="w-3 h-3 text-[var(--accent-primary)]" />
         <span>arceus-web</span>
       </div>
 
-      <ChevronRight className="w-3 h-3 text-[#4b5059] shrink-0" />
+      <ChevronRight className="w-3 h-3 text-[var(--text-muted)]/60 shrink-0" />
 
       {/* Source Directory */}
-      <div className="flex items-center gap-1 hover:text-[#dfe1e5] cursor-pointer transition">
-        <Folder className="w-3 h-3 text-[#e5a83b]" />
+      <div className="flex items-center gap-1 hover:text-[var(--text-main)] cursor-pointer transition">
+        <Folder className="w-3 h-3 text-amber-500" />
         <span>src</span>
       </div>
 
-      <ChevronRight className="w-3 h-3 text-[#4b5059] shrink-0" />
+      <ChevronRight className="w-3 h-3 text-[var(--text-muted)]/60 shrink-0" />
 
       {/* Current File */}
-      <div className="flex items-center gap-1 text-[#dfe1e5] font-medium">
-        <div className="w-2.5 h-2.5 rounded-[1px] bg-[#3574f0]/25 text-[#56a8f5] flex items-center justify-center text-[7px] font-bold">
+      <div className="flex items-center gap-1 text-[var(--text-main)] font-medium">
+        <div className="w-2.5 h-2.5 rounded-[1px] bg-[var(--accent-primary)]/25 text-[var(--accent-primary)] flex items-center justify-center text-[7px] font-bold">
           M
         </div>
         <span>{fileName}</span>
@@ -128,15 +128,15 @@ export const Breadcrumbs = React.memo(function Breadcrumbs({
       {/* Scopes in file */}
       {scopes.map((scope) => (
         <React.Fragment key={scope.id}>
-          <ChevronRight className="w-3 h-3 text-[#4b5059] shrink-0" />
+          <ChevronRight className="w-3 h-3 text-[var(--text-muted)]/60 shrink-0" />
           <button
             onClick={() => onNavigateToLine?.(scope.line)}
-            className="flex items-center gap-1 hover:text-[#3574f0] transition text-[#868a91] rounded px-1 -mx-1"
+            className="flex items-center gap-1 hover:text-[var(--accent-primary)] transition text-[var(--text-muted)] rounded px-1 -mx-1"
             title={`Go to line ${scope.line}`}
           >
-            {scope.iconType === 'program' && <Code2 className="w-3 h-3 text-[#3574f0]" />}
-            {scope.iconType === 'condition' && <GitBranch className="w-3 h-3 text-[#e5a83b]" />}
-            {scope.iconType === 'loop' && <Repeat className="w-3 h-3 text-[#a855f7]" />}
+            {scope.iconType === 'program' && <Code2 className="w-3 h-3 text-[var(--accent-primary)]" />}
+            {scope.iconType === 'condition' && <Workflow className="w-3 h-3 text-amber-500" />}
+            {scope.iconType === 'loop' && <Repeat className="w-3 h-3 text-purple-400" />}
             <span>{scope.label}</span>
           </button>
         </React.Fragment>

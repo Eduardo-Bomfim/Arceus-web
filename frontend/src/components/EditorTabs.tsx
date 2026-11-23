@@ -38,8 +38,8 @@ function JetBrainsMlTabIcon({ isActive }: { isActive: boolean }) {
     <div
       className={`w-3.5 h-3.5 rounded-[2px] flex items-center justify-center shrink-0 ${
         isActive
-          ? 'bg-[#3574f0]/25 text-[#56a8f5] border border-[#3574f0]/50'
-          : 'bg-[#3574f0]/10 text-[#868a91] border border-transparent'
+          ? 'bg-[var(--accent-primary)]/25 text-[var(--accent-primary)] border border-[var(--accent-primary)]/50'
+          : 'bg-[var(--accent-primary)]/10 text-[var(--text-muted)] border border-transparent'
       }`}
     >
       <span className="text-[8px] font-black font-mono leading-none">M</span>
@@ -107,9 +107,9 @@ export function EditorTabs({
   };
 
   return (
-    <div className="flex flex-col select-none shrink-0 bg-[#2b2d30] border-b border-[#393b40]">
+    <div className="flex flex-col select-none shrink-0 bg-[var(--bg-header)] border-b border-[var(--border-color)] transition-colors">
       {/* 1. Barra de Abas do Editor - Estilo JetBrains New UI */}
-      <div className="flex items-center justify-between h-[34px] px-1 bg-[#2b2d30] overflow-x-auto no-scrollbar">
+      <div className="flex items-center justify-between h-[34px] px-1 bg-[var(--bg-header)] overflow-x-auto no-scrollbar">
         {/* Abas e Botão Nova Aba */}
         <div className="flex items-center h-full overflow-x-auto no-scrollbar">
           {files.map((file) => {
@@ -121,10 +121,10 @@ export function EditorTabs({
                 key={file.id}
                 onClick={() => onSelectFile(file.id)}
                 onDoubleClick={() => handleStartRename(file)}
-                className={`group flex items-center gap-2 h-full px-3 cursor-pointer text-xs transition select-none shrink-0 border-r border-[#1e1f22] relative ${
+                className={`group flex items-center gap-2 h-full px-3 cursor-pointer text-xs transition select-none shrink-0 border-r border-[var(--border-color)]/60 relative ${
                   isActive
-                    ? 'bg-[#1e1f22] text-[#dfe1e5] font-medium border-b-2 border-b-[#3574f0]'
-                    : 'bg-[#2b2d30] text-[#868a91] hover:text-[#dfe1e5] hover:bg-[#323438]'
+                    ? 'bg-[var(--bg-surface)] text-[var(--text-main)] font-semibold border-b-2 border-b-[var(--accent-primary)]'
+                    : 'bg-[var(--bg-header)] text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-subtle)]'
                 }`}
               >
                 <JetBrainsMlTabIcon isActive={isActive} />
@@ -136,7 +136,7 @@ export function EditorTabs({
                     onChange={(e) => setEditName(e.target.value)}
                     onBlur={() => handleFinishRename(file.id)}
                     onKeyDown={(e) => handleKeyDown(e, file.id)}
-                    className="bg-[#2b2d30] text-[#dfe1e5] px-1 py-0.5 rounded text-xs outline-none border border-[#3574f0] w-24 font-mono"
+                    className="bg-[var(--bg-panel)] text-[var(--text-main)] px-1 py-0.5 rounded text-xs outline-none border border-[var(--accent-primary)] w-24 font-mono"
                     autoFocus
                     onClick={(e) => e.stopPropagation()}
                   />
@@ -152,7 +152,7 @@ export function EditorTabs({
                       onCloseFile(file.id);
                     }}
                     title="Close Tab (Ctrl+F4)"
-                    className={`p-0.5 rounded-[3px] hover:bg-[#35373c] text-[#868a91] hover:text-[#dfe1e5] transition ${
+                    className={`p-0.5 rounded-[3px] hover:bg-[var(--bg-subtle)] text-[var(--text-muted)] hover:text-[var(--text-main)] transition ${
                       isActive ? 'opacity-70 hover:opacity-100' : 'opacity-0 group-hover:opacity-100'
                     }`}
                   >
@@ -167,22 +167,22 @@ export function EditorTabs({
           <button
             onClick={onCreateFile}
             title="New File"
-            className="w-7 h-7 ml-1 rounded-[4px] hover:bg-[#35373c] text-[#868a91] hover:text-[#dfe1e5] transition flex items-center justify-center shrink-0"
+            className="w-7 h-7 ml-1 rounded-[4px] hover:bg-[var(--bg-subtle)] text-[var(--text-muted)] hover:text-[var(--text-main)] transition flex items-center justify-center shrink-0"
           >
             <Plus className="w-3.5 h-3.5" />
           </button>
         </div>
 
         {/* Controles da Direita: Reformat, Layout Split, Minimap, Copy */}
-        <div className="flex items-center gap-1 px-1.5 shrink-0 text-[#868a91]">
+        <div className="flex items-center gap-1 px-1.5 shrink-0 text-[var(--text-muted)]">
           {/* Botão Formatar Código (Ctrl+Alt+L no JetBrains) */}
           {onFormatCode && (
             <button
               onClick={handleFormat}
               title="Reformat Code (Shift+Alt+F ou Ctrl+Alt+L)"
-              className="flex items-center gap-1 px-2 py-1 rounded-[4px] text-[11px] hover:bg-[#35373c] hover:text-[#dfe1e5] transition"
+              className="flex items-center gap-1 px-2 py-1 rounded-[4px] text-[11px] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-main)] transition"
             >
-              <Sparkles className="w-3 h-3 text-[#3574f0]" />
+              <Sparkles className="w-3 h-3 text-[var(--accent-primary)]" />
               <span className="hidden sm:inline font-sans">
                 {formatted ? 'Reformatted' : 'Reformat'}
               </span>
@@ -198,7 +198,7 @@ export function EditorTabs({
                   ? 'Move Tool Window to Right'
                   : 'Move Tool Window to Bottom'
               }
-              className="p-1.5 rounded-[4px] hover:bg-[#35373c] hover:text-[#dfe1e5] transition flex items-center gap-1"
+              className="p-1.5 rounded-[4px] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-main)] transition flex items-center gap-1"
             >
               {panelPosition === 'bottom' ? (
                 <PanelRight className="w-3.5 h-3.5" />
@@ -215,8 +215,8 @@ export function EditorTabs({
               title={showMinimap ? 'Hide Minimap' : 'Show Minimap'}
               className={`p-1.5 rounded-[4px] transition ${
                 showMinimap
-                  ? 'text-[#dfe1e5] bg-[#35373c]'
-                  : 'hover:bg-[#35373c] hover:text-[#dfe1e5]'
+                  ? 'text-[var(--text-main)] bg-[var(--bg-subtle)]'
+                  : 'hover:bg-[var(--bg-subtle)] hover:text-[var(--text-main)]'
               }`}
             >
               <Map className="w-3.5 h-3.5" />
@@ -228,10 +228,10 @@ export function EditorTabs({
             <button
               onClick={handleCopy}
               title="Copy Code to Clipboard"
-              className="p-1.5 rounded-[4px] hover:bg-[#35373c] hover:text-[#dfe1e5] transition"
+              className="p-1.5 rounded-[4px] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-main)] transition"
             >
               {copied ? (
-                <Check className="w-3.5 h-3.5 text-[#59a869]" />
+                <Check className="w-3.5 h-3.5 text-emerald-400" />
               ) : (
                 <Copy className="w-3.5 h-3.5" />
               )}

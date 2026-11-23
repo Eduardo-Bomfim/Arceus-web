@@ -348,17 +348,17 @@ export const CfgPanel = React.memo(function CfgPanel({
   }
 
   return (
-    <div className="flex flex-col h-full bg-[#1e1f22] text-[#dfe1e5] font-sans text-xs overflow-hidden select-text">
+    <div className="flex flex-col h-full bg-[var(--bg-surface)] text-[var(--text-main)] font-sans text-xs overflow-hidden select-text transition-colors">
       {/* Header com Metadados e Tema */}
-      <div className="flex items-center justify-between px-3 py-1.5 bg-[#2b2d30] border-b border-[#393b40] select-none shrink-0">
+      <div className="flex items-center justify-between px-3 py-1.5 bg-[var(--bg-header)] border-b border-[var(--border-color)] select-none shrink-0">
         <div className="flex items-center gap-2">
-          <Network className="w-3.5 h-3.5 text-[#a855f7]" />
-          <span className="font-semibold text-[#dfe1e5]">
+          <Network className="w-3.5 h-3.5 text-purple-400" />
+          <span className="font-semibold text-[var(--text-main)]">
             Control Flow Graph (CFG)
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-[11px] text-[#868a91]">
+          <span className="text-[11px] text-[var(--text-muted)]">
             Zoom, pan, and click nodes to navigate
           </span>
         </div>

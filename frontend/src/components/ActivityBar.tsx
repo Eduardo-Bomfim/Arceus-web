@@ -4,7 +4,7 @@ import {
   AlertOctagon,
   Palette,
   Settings,
-  GitBranch,
+  Workflow,
   Network,
   ListTree,
 } from 'lucide-react';
@@ -37,7 +37,7 @@ export function ActivityBar({
   const { themeConfig, setTheme, theme, setIsSettingsOpen } = useTheme();
 
   return (
-    <aside className="w-10 bg-[#1e1f22] border-r border-[#393b40] flex flex-col items-center justify-between py-1.5 select-none shrink-0 z-20">
+    <aside className="w-10 bg-[var(--bg-app)] border-r border-[var(--border-color)] flex flex-col items-center justify-between py-1.5 select-none shrink-0 z-20 transition-colors">
       {/* Topo: Tool Windows Primárias do JetBrains */}
       <div className="flex flex-col items-center gap-1 w-full">
         {/* Project Tool Window (Alt+1) */}
@@ -46,12 +46,12 @@ export function ActivityBar({
           title="Project (Alt+1)"
           className={`w-8 h-8 rounded-[4px] transition relative flex items-center justify-center ${
             sidebarOpen
-              ? 'bg-[#2b2d30] text-[#dfe1e5]'
-              : 'text-[#868a91] hover:text-[#dfe1e5] hover:bg-[#2b2d30]/60'
+              ? 'bg-[var(--bg-panel)] text-[var(--text-main)] shadow-sm'
+              : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-subtle)]'
           }`}
         >
           {sidebarOpen && (
-            <div className="absolute left-0 top-1.5 bottom-1.5 w-[3px] bg-[#3574f0] rounded-r" />
+            <div className="absolute left-0 top-1.5 bottom-1.5 w-[3px] bg-[var(--accent-primary)] rounded-r" />
           )}
           <FolderTree className="w-4 h-4" />
         </button>
@@ -65,17 +65,17 @@ export function ActivityBar({
           title="Structure / Symbols (Alt+7)"
           className={`w-8 h-8 rounded-[4px] transition relative flex items-center justify-center ${
             isToolWindowVisible && activeTab === 'symbols'
-              ? 'bg-[#2b2d30] text-[#dfe1e5]'
-              : 'text-[#868a91] hover:text-[#dfe1e5] hover:bg-[#2b2d30]/60'
+              ? 'bg-[var(--bg-panel)] text-[var(--text-main)] shadow-sm'
+              : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-subtle)]'
           }`}
         >
           {isToolWindowVisible && activeTab === 'symbols' && (
-            <div className="absolute left-0 top-1.5 bottom-1.5 w-[3px] bg-[#3574f0] rounded-r" />
+            <div className="absolute left-0 top-1.5 bottom-1.5 w-[3px] bg-[var(--accent-primary)] rounded-r" />
           )}
           <ListTree className="w-4 h-4" />
         </button>
 
-        {/* Version Control / Git */}
+        {/* AST Inspector */}
         <button
           onClick={() => {
             onSelectTab('ast');
@@ -84,14 +84,14 @@ export function ActivityBar({
           title="Compiler AST Inspector"
           className={`w-8 h-8 rounded-[4px] transition relative flex items-center justify-center ${
             isToolWindowVisible && activeTab === 'ast'
-              ? 'bg-[#2b2d30] text-[#dfe1e5]'
-              : 'text-[#868a91] hover:text-[#dfe1e5] hover:bg-[#2b2d30]/60'
+              ? 'bg-[var(--bg-panel)] text-[var(--text-main)] shadow-sm'
+              : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-subtle)]'
           }`}
         >
           {isToolWindowVisible && activeTab === 'ast' && (
-            <div className="absolute left-0 top-1.5 bottom-1.5 w-[3px] bg-[#3574f0] rounded-r" />
+            <div className="absolute left-0 top-1.5 bottom-1.5 w-[3px] bg-[var(--accent-primary)] rounded-r" />
           )}
-          <GitBranch className="w-4 h-4" />
+          <Workflow className="w-4 h-4" />
         </button>
 
         {/* CFG / Flow */}
@@ -103,17 +103,17 @@ export function ActivityBar({
           title="Control Flow Graph (CFG)"
           className={`w-8 h-8 rounded-[4px] transition relative flex items-center justify-center ${
             isToolWindowVisible && activeTab === 'cfg'
-              ? 'bg-[#2b2d30] text-[#dfe1e5]'
-              : 'text-[#868a91] hover:text-[#dfe1e5] hover:bg-[#2b2d30]/60'
+              ? 'bg-[var(--bg-panel)] text-[var(--text-main)] shadow-sm'
+              : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-subtle)]'
           }`}
         >
           {isToolWindowVisible && activeTab === 'cfg' && (
-            <div className="absolute left-0 top-1.5 bottom-1.5 w-[3px] bg-[#3574f0] rounded-r" />
+            <div className="absolute left-0 top-1.5 bottom-1.5 w-[3px] bg-[var(--accent-primary)] rounded-r" />
           )}
           <Network className="w-4 h-4" />
         </button>
 
-        <div className="w-5 h-[1px] bg-[#393b40] my-1" />
+        <div className="w-5 h-[1px] bg-[var(--border-color)] my-1" />
 
         {/* Run / Terminal (Alt+4) */}
         <button
@@ -128,12 +128,12 @@ export function ActivityBar({
           title="Run / Terminal (Alt+4)"
           className={`w-8 h-8 rounded-[4px] transition relative flex items-center justify-center ${
             isToolWindowVisible && activeTab === 'console'
-              ? 'bg-[#2b2d30] text-[#dfe1e5]'
-              : 'text-[#868a91] hover:text-[#dfe1e5] hover:bg-[#2b2d30]/60'
+              ? 'bg-[var(--bg-panel)] text-[var(--text-main)] shadow-sm'
+              : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-subtle)]'
           }`}
         >
           {isToolWindowVisible && activeTab === 'console' && (
-            <div className="absolute left-0 top-1.5 bottom-1.5 w-[3px] bg-[#3574f0] rounded-r" />
+            <div className="absolute left-0 top-1.5 bottom-1.5 w-[3px] bg-[var(--accent-primary)] rounded-r" />
           )}
           <Terminal className="w-4 h-4" />
         </button>
@@ -151,16 +151,16 @@ export function ActivityBar({
           title="Problems (Alt+6)"
           className={`w-8 h-8 rounded-[4px] transition relative flex items-center justify-center ${
             isToolWindowVisible && activeTab === 'problems'
-              ? 'bg-[#2b2d30] text-[#f75464]'
-              : 'text-[#868a91] hover:text-[#dfe1e5] hover:bg-[#2b2d30]/60'
+              ? 'bg-[var(--bg-panel)] text-red-400 shadow-sm'
+              : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-subtle)]'
           }`}
         >
           <AlertOctagon className="w-4 h-4" />
           {errorsCount > 0 && (
-            <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-[#f75464]" />
+            <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-400" />
           )}
           {isToolWindowVisible && activeTab === 'problems' && (
-            <div className="absolute left-0 top-1.5 bottom-1.5 w-[3px] bg-[#f75464] rounded-r" />
+            <div className="absolute left-0 top-1.5 bottom-1.5 w-[3px] bg-red-400 rounded-r" />
           )}
         </button>
       </div>
@@ -170,22 +170,22 @@ export function ActivityBar({
         {/* Alternador Rápido de Tema */}
         <button
           onClick={() => {
-            const themeCycle: typeof theme[] = ['jetbrains', 'arceus', 'void', 'dialga', 'giratina'];
+            const themeCycle: typeof theme[] = ['jetbrains', 'arceus', 'void', 'dialga', 'giratina', 'arceus-light'];
             const idx = themeCycle.indexOf(theme);
             const next = themeCycle[(idx + 1) % themeCycle.length];
             setTheme(next);
           }}
           title={`Tema: ${themeConfig.name} (Clique para alternar rápido)`}
-          className="w-8 h-8 rounded-[4px] text-[#868a91] hover:text-[#dfe1e5] hover:bg-[#2b2d30] transition flex items-center justify-center"
+          className="w-8 h-8 rounded-[4px] text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-subtle)] transition flex items-center justify-center"
         >
-          <Palette className="w-4 h-4 text-[#3574f0]" />
+          <Palette className="w-4 h-4 text-[var(--accent-primary)]" />
         </button>
 
         {/* Settings Dialog (Ctrl+,) */}
         <button
           onClick={() => setIsSettingsOpen(true)}
           title="Settings (Ctrl+,)"
-          className="w-8 h-8 rounded-[4px] text-[#868a91] hover:text-[#dfe1e5] hover:bg-[#2b2d30] transition flex items-center justify-center"
+          className="w-8 h-8 rounded-[4px] text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-subtle)] transition flex items-center justify-center"
         >
           <Settings className="w-4 h-4" />
         </button>
