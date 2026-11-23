@@ -5,10 +5,8 @@ import {
   Type,
   Keyboard,
   Check,
-  Sparkles,
-  Sliders,
   Code2,
-  FileCode,
+  Settings as SettingsIcon,
 } from 'lucide-react';
 import { useTheme, THEMES } from '../context/ThemeContext';
 import type { ThemeId, EditorFontSize, EditorFontFamily } from '../types';
@@ -18,13 +16,12 @@ interface SettingsDrawerProps {
   onClose: () => void;
 }
 
-type TabType = 'appearance' | 'editor' | 'shortcuts';
+type SettingsSection = 'appearance' | 'font' | 'general' | 'keymap';
 
 export const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ isOpen, onClose }) => {
   const { theme, setTheme, settings, updateSettings } = useTheme();
-  const [activeTab, setActiveTab] = useState<TabType>('appearance');
+  const [activeSection, setActiveSection] = useState<SettingsSection>('appearance');
 
-  // Fechar gaveta ao pressionar a tecla Escape
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen) {
@@ -38,457 +35,330 @@ export const SettingsDrawer: React.FC<SettingsDrawerProps> = ({ isOpen, onClose 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end">
-      {/* Backdrop semi-transparente que não esconde totalmente o editor à esquerda */}
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm select-none font-sans">
+      {/* JetBrains Settings Dialog Window */}
       <div
-        className="fixed inset-0 bg-black/40 backdrop-blur-[2px] transition-opacity duration-300 animate-fadeIn"
-        onClick={onClose}
-        aria-hidden="true"
-      />
-
-      {/* Painel lateral deslizante */}
-      <div
-        className="relative z-10 w-full max-w-2xl h-full bg-[var(--bg-panel)] border-l border-[var(--border-color)] shadow-2xl flex flex-col transform transition-transform duration-300 ease-out animate-slideInRight"
-        style={{
-          boxShadow: '-8px 0 32px rgba(0, 0, 0, 0.45)',
-        }}
+        className="w-full max-w-3xl h-[600px] bg-[#2b2d30] border border-[#393b40] rounded-[8px] shadow-2xl flex flex-col overflow-hidden text-xs text-[#dfe1e5]"
+        onClick={(e) => e.stopPropagation()}
       >
-        {/* Cabeçalho da Gaveta */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-color)] bg-[var(--bg-header)]">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-[var(--accent-glow)] border border-[var(--border-color)] flex items-center justify-center text-[var(--accent-primary)]">
-              <Sliders className="w-4 h-4" />
-            </div>
-            <div>
-              <h2 className="text-base font-bold tracking-tight text-[var(--text-main)] flex items-center gap-2">
-                Configurações da Web IDE
-                <span className="text-[10px] font-mono uppercase px-2 py-0.5 rounded-full bg-[var(--accent-glow)] text-[var(--accent-primary)] font-semibold border border-[var(--border-color)]">
-                  Arceus OS
-                </span>
-              </h2>
-              <p className="text-xs text-[var(--text-muted)]">
-                Personalize o ambiente de desenvolvimento e sinta as mudanças em tempo real
-              </p>
-            </div>
+        {/* 1. Header do Diálogo de Configurações */}
+        <div className="h-10 px-4 bg-[#2b2d30] border-b border-[#393b40] flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-2">
+            <SettingsIcon className="w-4 h-4 text-[#3574f0]" />
+            <span className="font-semibold text-sm text-[#dfe1e5]">Settings</span>
           </div>
 
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-subtle)] transition-colors border border-transparent hover:border-[var(--border-color)]"
-            title="Fechar (Esc)"
+            className="p-1 rounded-[4px] text-[#868a91] hover:text-[#dfe1e5] hover:bg-[#35373c] transition"
+            title="Close (Esc)"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Barra de Navegação por Abas */}
-        <div className="flex items-center gap-2 px-6 pt-3 pb-0 border-b border-[var(--border-color)] bg-[var(--bg-surface)]">
-          <button
-            onClick={() => setActiveTab('appearance')}
-            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-medium border-b-2 transition-all ${
-              activeTab === 'appearance'
-                ? 'border-[var(--accent-primary)] text-[var(--accent-primary)] font-semibold'
-                : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-main)]'
-            }`}
-          >
-            <Palette className="w-3.5 h-3.5" />
-            Aparência & Guardiões
-            <span className="text-[10px] px-1.5 py-0.2 bg-[var(--bg-subtle)] text-[var(--text-muted)] rounded">
-              {THEMES.length}
-            </span>
-          </button>
+        {/* 2. Corpo com Split: Barra Lateral de Categorias à Esquerda + Conteúdo à Direita */}
+        <div className="flex-1 flex overflow-hidden">
+          {/* Navegação por Categorias à Esquerda estilo IntelliJ IDEA */}
+          <div className="w-56 bg-[#1e1f22] border-r border-[#393b40] p-2 flex flex-col gap-0.5 shrink-0 overflow-y-auto">
+            <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-[#868a91]">
+              IDE Settings
+            </div>
 
-          <button
-            onClick={() => setActiveTab('editor')}
-            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-medium border-b-2 transition-all ${
-              activeTab === 'editor'
-                ? 'border-[var(--accent-primary)] text-[var(--accent-primary)] font-semibold'
-                : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-main)]'
-            }`}
-          >
-            <Type className="w-3.5 h-3.5" />
-            Editor & Tipografia
-          </button>
+            <button
+              onClick={() => setActiveSection('appearance')}
+              className={`flex items-center gap-2 px-2.5 py-1.5 rounded-[4px] text-xs transition text-left ${
+                activeSection === 'appearance'
+                  ? 'bg-[#2e436e] text-white font-medium'
+                  : 'text-[#bcbec4] hover:text-[#dfe1e5] hover:bg-[#35373c]'
+              }`}
+            >
+              <Palette className="w-3.5 h-3.5 text-[#3574f0]" />
+              <span>Appearance & Themes</span>
+            </button>
 
-          <button
-            onClick={() => setActiveTab('shortcuts')}
-            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-medium border-b-2 transition-all ${
-              activeTab === 'shortcuts'
-                ? 'border-[var(--accent-primary)] text-[var(--accent-primary)] font-semibold'
-                : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-main)]'
-            }`}
-          >
-            <Keyboard className="w-3.5 h-3.5" />
-            Atalhos de Teclado
-          </button>
-        </div>
+            <button
+              onClick={() => setActiveSection('font')}
+              className={`flex items-center gap-2 px-2.5 py-1.5 rounded-[4px] text-xs transition text-left ${
+                activeSection === 'font'
+                  ? 'bg-[#2e436e] text-white font-medium'
+                  : 'text-[#bcbec4] hover:text-[#dfe1e5] hover:bg-[#35373c]'
+              }`}
+            >
+              <Type className="w-3.5 h-3.5 text-[#59a869]" />
+              <span>Editor &gt; Font</span>
+            </button>
 
-        {/* Conteúdo das Abas (Scrollável) */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          {/* ==================================================== */}
-          {/* ABA 1: APARÊNCIA & TEMAS (BENTO GRID MODERNO)        */}
-          {/* ==================================================== */}
-          {activeTab === 'appearance' && (
-            <div className="space-y-4">
-              <div>
-                <h3 className="text-sm font-semibold text-[var(--text-main)] flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-[var(--accent-primary)]" />
-                  Galeria dos Guardiões da Criação
-                </h3>
-                <p className="text-xs text-[var(--text-muted)] mt-1">
-                  Selecione uma paleta inspirada nas divindades de Sinnoh e Unova. O editor reflete a aura e cores instantaneamente.
-                </p>
-              </div>
+            <button
+              onClick={() => setActiveSection('general')}
+              className={`flex items-center gap-2 px-2.5 py-1.5 rounded-[4px] text-xs transition text-left ${
+                activeSection === 'general'
+                  ? 'bg-[#2e436e] text-white font-medium'
+                  : 'text-[#bcbec4] hover:text-[#dfe1e5] hover:bg-[#35373c]'
+              }`}
+            >
+              <Code2 className="w-3.5 h-3.5 text-[#e5a83b]" />
+              <span>Editor &gt; General</span>
+            </button>
 
-              {/* Bento Grid dos Temas (2 colunas) */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-1">
-                {THEMES.map((t) => {
-                  const isSelected = theme === t.id;
-                  const [cBg, cSurface, cPrimary, cAccent] = t.previewColors;
+            <button
+              onClick={() => setActiveSection('keymap')}
+              className={`flex items-center gap-2 px-2.5 py-1.5 rounded-[4px] text-xs transition text-left ${
+                activeSection === 'keymap'
+                  ? 'bg-[#2e436e] text-white font-medium'
+                  : 'text-[#bcbec4] hover:text-[#dfe1e5] hover:bg-[#35373c]'
+              }`}
+            >
+              <Keyboard className="w-3.5 h-3.5 text-[#a855f7]" />
+              <span>Keymap (Shortcuts)</span>
+            </button>
+          </div>
 
-                  return (
-                    <div
-                      key={t.id}
-                      onClick={() => setTheme(t.id as ThemeId)}
-                      className={`group relative p-3.5 rounded-xl border text-left cursor-pointer transition-all duration-200 flex flex-col justify-between ${
-                        isSelected
-                          ? 'border-[var(--accent-primary)] bg-[var(--bg-subtle)] shadow-lg'
-                          : 'border-[var(--border-color)] bg-[var(--bg-surface)] hover:border-[var(--text-muted)]/40 hover:bg-[var(--bg-subtle)]/70'
-                      }`}
-                      style={{
-                        outline: isSelected ? `2px solid ${t.primaryColor}` : 'none',
-                        outlineOffset: '2px',
-                      }}
-                    >
-                      {/* Topo do Card: Nome e Selo de Seleção */}
-                      <div>
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-xs font-bold text-[var(--text-main)] tracking-tight">
-                            {t.name}
-                          </span>
+          {/* Painel de Conteúdo de Configuração à Direita */}
+          <div className="flex-1 bg-[#2b2d30] p-5 overflow-y-auto">
+            {/* SEÇÃO 1: APARÊNCIA & TEMAS */}
+            {activeSection === 'appearance' && (
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-sm font-semibold text-[#dfe1e5]">Color Scheme & Appearance</h3>
+                  <p className="text-[11px] text-[#868a91] mt-0.5">
+                    Select a color scheme for the editor and IDE interface.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  {THEMES.map((t) => {
+                    const isSelected = theme === t.id;
+                    const [cBg, cSurface, cPrimary, cAccent] = t.previewColors;
+
+                    return (
+                      <div
+                        key={t.id}
+                        onClick={() => setTheme(t.id as ThemeId)}
+                        className={`p-3 rounded-[6px] border text-left cursor-pointer transition flex flex-col justify-between ${
+                          isSelected
+                            ? 'border-[#3574f0] bg-[#1e1f22]'
+                            : 'border-[#393b40] bg-[#1e1f22]/60 hover:border-[#868a91] hover:bg-[#1e1f22]'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="font-semibold text-xs text-[#dfe1e5]">{t.name}</span>
                           {isSelected && (
-                            <span
-                              className="w-5 h-5 rounded-full flex items-center justify-center text-white"
-                              style={{ backgroundColor: t.primaryColor }}
-                            >
+                            <span className="w-4 h-4 rounded-full bg-[#3574f0] text-white flex items-center justify-center">
                               <Check className="w-3 h-3 stroke-[3]" />
                             </span>
                           )}
                         </div>
 
-                        <p className="text-[11px] text-[var(--text-muted)] line-clamp-1 mb-2.5">
+                        <p className="text-[11px] text-[#868a91] line-clamp-1 mb-2">
                           {t.subtitle}
                         </p>
+
+                        {/* Swatches */}
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-3.5 h-3.5 rounded-full border border-black/30" style={{ backgroundColor: cBg }} />
+                          <div className="w-3.5 h-3.5 rounded-full border border-black/30" style={{ backgroundColor: cSurface }} />
+                          <div className="w-3.5 h-3.5 rounded-full border border-black/30" style={{ backgroundColor: cPrimary }} />
+                          <div className="w-3.5 h-3.5 rounded-full border border-black/30" style={{ backgroundColor: cAccent }} />
+                          <span className="text-[10px] ml-auto font-mono text-[#868a91]">
+                            {t.isDark ? 'Dark' : 'Light'}
+                          </span>
+                        </div>
                       </div>
-
-                      {/* Swatches de Cores (4 Pilares Visuais) */}
-                      <div className="flex items-center gap-1.5 mb-3">
-                        <div
-                          className="w-4 h-4 rounded-full border border-black/20 shadow-sm"
-                          style={{ backgroundColor: cBg }}
-                          title="Fundo"
-                        />
-                        <div
-                          className="w-4 h-4 rounded-full border border-black/20 shadow-sm"
-                          style={{ backgroundColor: cSurface }}
-                          title="Superfície"
-                        />
-                        <div
-                          className="w-4 h-4 rounded-full border border-black/20 shadow-sm"
-                          style={{ backgroundColor: cPrimary }}
-                          title="Acento Primário"
-                        />
-                        <div
-                          className="w-4 h-4 rounded-full border border-black/20 shadow-sm"
-                          style={{ backgroundColor: cAccent }}
-                          title="Acento Secundário"
-                        />
-
-                        <span className="text-[10px] ml-auto font-mono text-[var(--text-muted)]">
-                          {t.isDark ? 'Dark' : 'Light'}
-                        </span>
-                      </div>
-
-                      {/* Mini Mockup Sintático de Código MiniLang */}
-                      <div
-                        className="p-2.5 rounded-lg border text-[10px] font-mono leading-relaxed"
-                        style={{
-                          backgroundColor: cBg,
-                          borderColor: cPrimary + '40',
-                          color: t.isDark ? '#e2e8f0' : '#1e293b',
-                        }}
-                      >
-                        <div>
-                          <span style={{ color: cPrimary, fontWeight: 600 }}>programa</span>{' '}
-                          <span style={{ color: t.isDark ? '#f8fafc' : '#0f172a' }}>demo</span>{' '}
-                          {'{'}
-                        </div>
-                        <div className="pl-3">
-                          <span style={{ color: cPrimary, fontWeight: 600 }}>var</span>{' '}
-                          <span>x</span>{' '}
-                          <span style={{ color: cAccent, fontWeight: 600 }}>inteiro</span>;
-                        </div>
-                        <div className="pl-3">
-                          <span>x = 42;</span>
-                        </div>
-                        <div className="pl-3">
-                          <span style={{ color: cPrimary, fontWeight: 600 }}>escreva</span> x;
-                        </div>
-                        <div>{'}'} <span style={{ color: cPrimary, fontWeight: 600 }}>fim</span>.</div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* ==================================================== */}
-          {/* ABA 2: EDITOR & TIPOGRAFIA                           */}
-          {/* ==================================================== */}
-          {activeTab === 'editor' && (
-            <div className="space-y-6">
-              {/* Tamanho da Fonte */}
-              <div className="p-4 rounded-xl border border-[var(--border-color)] bg-[var(--bg-surface)] space-y-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="text-xs font-bold text-[var(--text-main)] uppercase tracking-wider">
-                      Tamanho da Fonte no Editor
-                    </h4>
-                    <p className="text-xs text-[var(--text-muted)]">
-                      Ajuste a escala visual do código para máxima legibilidade
-                    </p>
-                  </div>
-                  <span className="text-xs font-mono font-bold text-[var(--accent-primary)] px-2.5 py-1 rounded bg-[var(--accent-glow)] border border-[var(--border-color)]">
-                    {settings.fontSize}
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-4 gap-2 pt-1">
-                  {(['12px', '14px', '16px', '18px'] as EditorFontSize[]).map((size) => (
-                    <button
-                      key={size}
-                      onClick={() => updateSettings({ fontSize: size })}
-                      className={`py-2 px-3 rounded-lg text-xs font-mono font-medium border transition-all ${
-                        settings.fontSize === size
-                          ? 'border-[var(--accent-primary)] bg-[var(--accent-glow)] text-[var(--accent-primary)] font-bold'
-                          : 'border-[var(--border-color)] bg-[var(--bg-panel)] text-[var(--text-muted)] hover:text-[var(--text-main)]'
-                      }`}
-                    >
-                      {size}
-                    </button>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
+            )}
 
-              {/* Família da Fonte */}
-              <div className="p-4 rounded-xl border border-[var(--border-color)] bg-[var(--bg-surface)] space-y-3">
+            {/* SEÇÃO 2: FONTE DO EDITOR */}
+            {activeSection === 'font' && (
+              <div className="space-y-4">
                 <div>
-                  <h4 className="text-xs font-bold text-[var(--text-main)] uppercase tracking-wider">
-                    Família Tipográfica Local
-                  </h4>
-                  <p className="text-xs text-[var(--text-muted)]">
-                    Fontes técnicas integradas via pacotes locais sem latência externa
+                  <h3 className="text-sm font-semibold text-[#dfe1e5]">Editor Font</h3>
+                  <p className="text-[11px] text-[#868a91] mt-0.5">
+                    Configure the primary typography for code editing.
                   </p>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 pt-1">
-                  {(['JetBrains Mono', 'Fira Code'] as EditorFontFamily[]).map((font) => (
-                    <button
-                      key={font}
-                      onClick={() => updateSettings({ fontFamily: font })}
-                      className={`p-3 rounded-lg text-left border transition-all flex flex-col justify-between ${
-                        settings.fontFamily === font
-                          ? 'border-[var(--accent-primary)] bg-[var(--accent-glow)] text-[var(--accent-primary)] font-bold'
-                          : 'border-[var(--border-color)] bg-[var(--bg-panel)] text-[var(--text-muted)] hover:text-[var(--text-main)]'
-                      }`}
-                    >
-                      <span className="text-xs font-bold">{font}</span>
-                      <span
-                        className="text-xs mt-2 opacity-80"
-                        style={{ fontFamily: font }}
+                {/* Família */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-[#dfe1e5]">Font Family</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {(['JetBrains Mono', 'Fira Code'] as EditorFontFamily[]).map((font) => (
+                      <button
+                        key={font}
+                        onClick={() => updateSettings({ fontFamily: font })}
+                        className={`p-2.5 rounded-[4px] border text-left transition ${
+                          settings.fontFamily === font
+                            ? 'border-[#3574f0] bg-[#1e1f22] text-white font-semibold'
+                            : 'border-[#393b40] bg-[#1e1f22]/60 text-[#868a91] hover:text-[#dfe1e5]'
+                        }`}
                       >
-                        {font === 'Fira Code' ? '-> === !== >= <=' : 'func main() { ... }'}
-                      </span>
-                    </button>
-                  ))}
+                        <div className="font-semibold text-xs">{font}</div>
+                        <div className="text-[11px] mt-1 opacity-70" style={{ fontFamily: font }}>
+                          func main() {'{'} a = 42; {'}'}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
 
-              {/* Switches do Editor */}
-              <div className="p-4 rounded-xl border border-[var(--border-color)] bg-[var(--bg-surface)] divide-y divide-[var(--border-color)]">
+                {/* Tamanho da Fonte */}
+                <div className="space-y-1.5 pt-2">
+                  <label className="text-xs font-semibold text-[#dfe1e5]">Font Size</label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {(['12px', '14px', '16px', '18px'] as EditorFontSize[]).map((size) => (
+                      <button
+                        key={size}
+                        onClick={() => updateSettings({ fontSize: size })}
+                        className={`py-1.5 px-3 rounded-[4px] border font-mono text-center transition ${
+                          settings.fontSize === size
+                            ? 'border-[#3574f0] bg-[#1e1f22] text-[#3574f0] font-bold'
+                            : 'border-[#393b40] bg-[#1e1f22]/60 text-[#868a91] hover:text-[#dfe1e5]'
+                        }`}
+                      >
+                        {size}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 {/* Ligaduras */}
-                <div className="flex items-center justify-between py-3 first:pt-0">
+                <div className="flex items-center justify-between p-3 rounded-[4px] border border-[#393b40] bg-[#1e1f22]/60 mt-3">
                   <div>
-                    <h5 className="text-xs font-semibold text-[var(--text-main)]">
-                      Ligaduras Tipográficas
-                    </h5>
-                    <p className="text-[11px] text-[var(--text-muted)]">
-                      Combina símbolos matemáticos e operadores lógicos (ex: -&gt;, ==, !=)
-                    </p>
+                    <div className="font-semibold text-xs text-[#dfe1e5]">Enable Font Ligatures</div>
+                    <div className="text-[11px] text-[#868a91]">Combines operators like -&gt;, ==, !=</div>
                   </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={settings.enableLigatures}
-                      onChange={(e) => updateSettings({ enableLigatures: e.target.checked })}
-                      className="sr-only peer"
-                    />
-                    <div className="w-10 h-5 bg-[var(--bg-subtle)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[var(--accent-primary)]"></div>
-                  </label>
-                </div>
-
-                {/* Quebra de Linha (Line Wrapping) */}
-                <div className="flex items-center justify-between py-3">
-                  <div>
-                    <h5 className="text-xs font-semibold text-[var(--text-main)]">
-                      Quebra Automática de Linha (Word Wrap)
-                    </h5>
-                    <p className="text-[11px] text-[var(--text-muted)]">
-                      Ajusta linhas compridas na largura visual do editor sem rolagem horizontal
-                    </p>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={settings.editorLineWrapping}
-                      onChange={(e) => updateSettings({ editorLineWrapping: e.target.checked })}
-                      className="sr-only peer"
-                    />
-                    <div className="w-10 h-5 bg-[var(--bg-subtle)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[var(--accent-primary)]"></div>
-                  </label>
-                </div>
-
-                {/* Minimapa */}
-                <div className="flex items-center justify-between py-3 last:pb-0">
-                  <div>
-                    <h5 className="text-xs font-semibold text-[var(--text-main)]">
-                      Exibir Minimapa de Código
-                    </h5>
-                    <p className="text-[11px] text-[var(--text-muted)]">
-                      Visão panorâmica em miniatura para navegação rápida em arquivos longos
-                    </p>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={settings.showMinimap}
-                      onChange={(e) => updateSettings({ showMinimap: e.target.checked })}
-                      className="sr-only peer"
-                    />
-                    <div className="w-10 h-5 bg-[var(--bg-subtle)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[var(--accent-primary)]"></div>
-                  </label>
+                  <input
+                    type="checkbox"
+                    checked={settings.enableLigatures}
+                    onChange={(e) => updateSettings({ enableLigatures: e.target.checked })}
+                    className="w-4 h-4 accent-[#3574f0] rounded cursor-pointer"
+                  />
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* ==================================================== */}
-          {/* ABA 3: ATALHOS DE TECLADO                            */}
-          {/* ==================================================== */}
-          {activeTab === 'shortcuts' && (
-            <div className="space-y-4">
-              <div>
-                <h3 className="text-sm font-semibold text-[var(--text-main)] flex items-center gap-2">
-                  <Keyboard className="w-4 h-4 text-[var(--accent-primary)]" />
-                  Atalhos Essenciais da Web IDE
-                </h3>
-                <p className="text-xs text-[var(--text-muted)] mt-1">
-                  Acelere seu fluxo de trabalho com teclas de atalho inspiradas em IDEs modernas
-                </p>
-              </div>
+            {/* SEÇÃO 3: EDITOR GENERAL */}
+            {activeSection === 'general' && (
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-sm font-semibold text-[#dfe1e5]">General Editor Settings</h3>
+                  <p className="text-[11px] text-[#868a91] mt-0.5">
+                    Configure code wrap, minimap, and display preferences.
+                  </p>
+                </div>
 
-              <div className="rounded-xl border border-[var(--border-color)] overflow-hidden bg-[var(--bg-surface)]">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-[var(--bg-header)] text-[var(--text-muted)] uppercase tracking-wider font-mono text-[10px] border-b border-[var(--border-color)]">
-                    <tr>
-                      <th className="py-2.5 px-4 font-semibold">Comando</th>
-                      <th className="py-2.5 px-4 font-semibold text-right">Atalho</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[var(--border-color)] text-[var(--text-main)] font-medium">
-                    <tr className="hover:bg-[var(--bg-subtle)]/50 transition-colors">
-                      <td className="py-2.5 px-4 flex items-center gap-2">
-                        <Code2 className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
-                        Executar Compilação e Código
-                      </td>
-                      <td className="py-2.5 px-4 text-right">
-                        <kbd className="px-2 py-0.5 rounded bg-[var(--bg-panel)] border border-[var(--border-color)] font-mono text-[11px] shadow-sm">
-                          F9
-                        </kbd>
-                        <span className="mx-1 text-[var(--text-muted)]">ou</span>
-                        <kbd className="px-2 py-0.5 rounded bg-[var(--bg-panel)] border border-[var(--border-color)] font-mono text-[11px] shadow-sm">
-                          Ctrl+Enter
-                        </kbd>
-                      </td>
-                    </tr>
-                    <tr className="hover:bg-[var(--bg-subtle)]/50 transition-colors">
-                      <td className="py-2.5 px-4">Paleta de Comandos Rápidos</td>
-                      <td className="py-2.5 px-4 text-right">
-                        <kbd className="px-2 py-0.5 rounded bg-[var(--bg-panel)] border border-[var(--border-color)] font-mono text-[11px] shadow-sm">
-                          Ctrl+K
-                        </kbd>
-                      </td>
-                    </tr>
-                    <tr className="hover:bg-[var(--bg-subtle)]/50 transition-colors">
-                      <td className="py-2.5 px-4">Abrir Configurações & Temas</td>
-                      <td className="py-2.5 px-4 text-right">
-                        <kbd className="px-2 py-0.5 rounded bg-[var(--bg-panel)] border border-[var(--border-color)] font-mono text-[11px] shadow-sm">
-                          Ctrl+,
-                        </kbd>
-                      </td>
-                    </tr>
-                    <tr className="hover:bg-[var(--bg-subtle)]/50 transition-colors">
-                      <td className="py-2.5 px-4">Alternar Painel Inferior</td>
-                      <td className="py-2.5 px-4 text-right">
-                        <kbd className="px-2 py-0.5 rounded bg-[var(--bg-panel)] border border-[var(--border-color)] font-mono text-[11px] shadow-sm">
-                          Alt+4
-                        </kbd>
-                      </td>
-                    </tr>
-                    <tr className="hover:bg-[var(--bg-subtle)]/50 transition-colors">
-                      <td className="py-2.5 px-4">Alternar Barra de Projetos</td>
-                      <td className="py-2.5 px-4 text-right">
-                        <kbd className="px-2 py-0.5 rounded bg-[var(--bg-panel)] border border-[var(--border-color)] font-mono text-[11px] shadow-sm">
-                          Alt+1
-                        </kbd>
-                      </td>
-                    </tr>
-                    <tr className="hover:bg-[var(--bg-subtle)]/50 transition-colors">
-                      <td className="py-2.5 px-4">Formatar Código MiniLang</td>
-                      <td className="py-2.5 px-4 text-right">
-                        <kbd className="px-2 py-0.5 rounded bg-[var(--bg-panel)] border border-[var(--border-color)] font-mono text-[11px] shadow-sm">
-                          Shift+Alt+F
-                        </kbd>
-                      </td>
-                    </tr>
-                    <tr className="hover:bg-[var(--bg-subtle)]/50 transition-colors">
-                      <td className="py-2.5 px-4">Fechar Janela / Cancelar Foco</td>
-                      <td className="py-2.5 px-4 text-right">
-                        <kbd className="px-2 py-0.5 rounded bg-[var(--bg-panel)] border border-[var(--border-color)] font-mono text-[11px] shadow-sm">
-                          Esc
-                        </kbd>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+                {/* Word Wrap */}
+                <div className="flex items-center justify-between p-3 rounded-[4px] border border-[#393b40] bg-[#1e1f22]/60">
+                  <div>
+                    <div className="font-semibold text-xs text-[#dfe1e5]">Soft-Wrap (Line Wrapping)</div>
+                    <div className="text-[11px] text-[#868a91]">Wrap long lines automatically without horizontal scrolling</div>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={settings.editorLineWrapping}
+                    onChange={(e) => updateSettings({ editorLineWrapping: e.target.checked })}
+                    className="w-4 h-4 accent-[#3574f0] rounded cursor-pointer"
+                  />
+                </div>
+
+                {/* Minimap */}
+                <div className="flex items-center justify-between p-3 rounded-[4px] border border-[#393b40] bg-[#1e1f22]/60">
+                  <div>
+                    <div className="font-semibold text-xs text-[#dfe1e5]">Show Code Minimap</div>
+                    <div className="text-[11px] text-[#868a91]">Display miniature code overview on the right edge</div>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={settings.showMinimap}
+                    onChange={(e) => updateSettings({ showMinimap: e.target.checked })}
+                    className="w-4 h-4 accent-[#3574f0] rounded cursor-pointer"
+                  />
+                </div>
               </div>
-            </div>
-          )}
+            )}
+
+            {/* SEÇÃO 4: KEYMAP */}
+            {activeSection === 'keymap' && (
+              <div className="space-y-3">
+                <div>
+                  <h3 className="text-sm font-semibold text-[#dfe1e5]">Keymap</h3>
+                  <p className="text-[11px] text-[#868a91] mt-0.5">
+                    Default JetBrains keybindings supported in this environment.
+                  </p>
+                </div>
+
+                <div className="border border-[#393b40] rounded-[4px] overflow-hidden bg-[#1e1f22]">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-[#2b2d30] text-[#868a91] uppercase tracking-wider font-mono text-[10px] border-b border-[#393b40]">
+                      <tr>
+                        <th className="py-2 px-3 font-semibold">Action</th>
+                        <th className="py-2 px-3 font-semibold text-right">Shortcut</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#393b40]/50 text-[#dfe1e5]">
+                      <tr className="hover:bg-[#35373c]/50">
+                        <td className="py-2 px-3">Run Program</td>
+                        <td className="py-2 px-3 text-right font-mono text-[#868a91]">F9 / Ctrl+Enter</td>
+                      </tr>
+                      <tr className="hover:bg-[#35373c]/50">
+                        <td className="py-2 px-3">Reformat Code</td>
+                        <td className="py-2 px-3 text-right font-mono text-[#868a91]">Shift+Alt+F / Ctrl+Alt+L</td>
+                      </tr>
+                      <tr className="hover:bg-[#35373c]/50">
+                        <td className="py-2 px-3">Search Everywhere</td>
+                        <td className="py-2 px-3 text-right font-mono text-[#868a91]">Double Shift / Ctrl+K</td>
+                      </tr>
+                      <tr className="hover:bg-[#35373c]/50">
+                        <td className="py-2 px-3">Toggle Project Window</td>
+                        <td className="py-2 px-3 text-right font-mono text-[#868a91]">Alt+1</td>
+                      </tr>
+                      <tr className="hover:bg-[#35373c]/50">
+                        <td className="py-2 px-3">Toggle Run / Terminal</td>
+                        <td className="py-2 px-3 text-right font-mono text-[#868a91]">Alt+4</td>
+                      </tr>
+                      <tr className="hover:bg-[#35373c]/50">
+                        <td className="py-2 px-3">Toggle Problems</td>
+                        <td className="py-2 px-3 text-right font-mono text-[#868a91]">Alt+6</td>
+                      </tr>
+                      <tr className="hover:bg-[#35373c]/50">
+                        <td className="py-2 px-3">Clear Console</td>
+                        <td className="py-2 px-3 text-right font-mono text-[#868a91]">Ctrl+L</td>
+                      </tr>
+                      <tr className="hover:bg-[#35373c]/50">
+                        <td className="py-2 px-3">Open Settings</td>
+                        <td className="py-2 px-3 text-right font-mono text-[#868a91]">Ctrl+,</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Rodapé da Gaveta */}
-        <div className="px-6 py-3 border-t border-[var(--border-color)] bg-[var(--bg-header)] flex items-center justify-between text-xs text-[var(--text-muted)]">
+        {/* 3. Rodapé Estilo JetBrains: Botões OK / Cancel / Apply */}
+        <div className="h-11 px-4 bg-[#2b2d30] border-t border-[#393b40] flex items-center justify-between shrink-0">
+          <span className="text-[11px] text-[#868a91]">
+            Arceus Web IDE • JetBrains Edition
+          </span>
+
           <div className="flex items-center gap-2">
-            <FileCode className="w-4 h-4 text-[var(--accent-primary)]" />
-            <span>Preferências salvas localmente no navegador</span>
+            <button
+              onClick={onClose}
+              className="px-3.5 py-1 rounded-[4px] bg-[#393b40] hover:bg-[#43454a] text-[#dfe1e5] transition font-medium text-xs"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={onClose}
+              className="px-4 py-1 rounded-[4px] bg-[#3574f0] hover:bg-[#3064d0] text-white transition font-medium text-xs shadow-sm"
+            >
+              OK
+            </button>
           </div>
-          <button
-            onClick={onClose}
-            className="px-4 py-1.5 rounded-lg bg-[var(--accent-primary)] text-black font-semibold hover:opacity-90 transition-opacity"
-          >
-            Concluir
-          </button>
         </div>
       </div>
     </div>
