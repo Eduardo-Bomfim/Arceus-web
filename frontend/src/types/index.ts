@@ -111,4 +111,5 @@ export interface EditorSettings {
   enableLigatures: boolean;
   editorLineWrapping: boolean;
   showMinimap: boolean;
+  optimize: boolean;
 }
