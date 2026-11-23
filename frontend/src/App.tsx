@@ -29,7 +29,7 @@ import { getSharedCode, generateShareUrl } from './utils/share';
 import { formatMiniLangCode } from './editor/formatter';
 
 function IdeWorkspace() {
-  const { theme, isSettingsOpen, setIsSettingsOpen } = useTheme();
+  const { theme, isSettingsOpen, setIsSettingsOpen, settings, updateSettings } = useTheme();
   const { showToast } = useToast();
   const { activeTab, setActiveTab } = useTabs('console');
   const {
@@ -59,7 +59,13 @@ function IdeWorkspace() {
   const [isToolWindowMaximized, setIsToolWindowMaximized] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
-  const [optimize, setOptimize] = useState(false);
+  const optimize = settings.optimize;
+  const handleToggleOptimize = (opt: boolean) => {
+    updateSettings({ optimize: opt });
+    if (activeFile) {
+      runAnalysis(activeFile.content, opt);
+    }
+  };
   const [showMinimap, setShowMinimap] = useState(true);
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
   const [cursorPos, setCursorPos] = useState({ line: 1, col: 1 });
@@ -306,11 +312,6 @@ function IdeWorkspace() {
       <Topbar
         activeFileName={activeFile?.name || 'main.ml'}
         status={status}
-        optimize={optimize}
-        onToggleOptimize={(opt) => {
-          setOptimize(opt);
-          if (activeFile) runAnalysis(activeFile.content, opt);
-        }}
         onRun={handleRun}
         onAbort={abortExecution}
         onAnalyze={handleAnalyze}
@@ -586,6 +587,8 @@ function IdeWorkspace() {
       <SettingsDrawer
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
+        optimize={optimize}
+        onToggleOptimize={handleToggleOptimize}
       />
     </div>
   );
