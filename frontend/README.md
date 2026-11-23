@@ -1,12 +1,28 @@
 # 🌐 Arceus Web IDE (Playground Online MiniLang)
 
-Interface gráfica e Web IDE moderna para o compilador e interpretador **MiniLang (Arceus)**, inspirada em plataformas didáticas como o *Portugol Webstudio*.
+Interface gráfica e Web IDE moderna para o compilador e interpretador **MiniLang (Arceus)**, inspirada em plataformas didáticas como o *Portugol Webstudio* e enriquecida com a estética mitológica do Pokémon Alfa **Arceus**.
 
 Permite escrever programas em MiniLang diretamente no navegador, executar interativamente via WebSocket (com suporte a `leia` e `escreva`), e inspecionar visualmente as fases do compilador: **AST antes/depois da otimização**, **Tabela de Símbolos**, **Tokens Léxicos** e **Diagnósticos de Erro com marcação inline**.
 
 ---
 
-## 🚀 Funcionalidades
+## 🎨 Sistema de Temas Personalizáveis
+
+A IDE possui seletor de temas integrado na barra superior com persistência automática no `localStorage`:
+
+1. **✨ Arceus Divino (Tema Especial / Padrão):**
+   - Inspirado no corpo platina/obsidiana, na Roda da Criação dourada (`#fbbf24`) e nas gemas esmeralda (`#10b981`) do Pokémon Arceus.
+   - Realce no editor: palavras-chave em ouro divino, tipos em verde esmeralda, booleanos em vermelho rubi (olhos de Arceus) e cursor brilhante com aura sagrada.
+2. **🌌 Vácuo Cósmico:**
+   - Dark theme moderno e profissional de alto contraste com detalhes em ciano neon e azul sideral.
+3. **⏳ Dialga Temporal:**
+   - Tons profundos de cobalto, aço metálico e o brilho do diamante do tempo (`#06b6d4`).
+4. **🌀 Mundo Distorção (Giratina):**
+   - Estética abissal inspirada no Distortion World com detalhes carmesim escarlate (`#f43f5e`) e ouro sombrio.
+
+---
+
+## 🚀 Funcionalidades da Web IDE
 
 ### 1. Editor de Código Especializado (CodeMirror 6)
 - **Realce de sintaxe customizado da MiniLang**:
@@ -14,7 +30,7 @@ Permite escrever programas em MiniLang diretamente no navegador, executar intera
   - Literais inteiros e booleanos.
   - Comentários `#` e operadores aritméticos/relacionais.
 - **Marcadores de erro inline (*Squiggles*)**: Erros léxicos, sintáticos e semânticos sublinhados em vermelho nas linhas e colunas exatas, com tooltips informativos.
-- Numeração de linhas, fechamento automático de chaves/parênteses e tema escuro (*One Dark*).
+- Numeração de linhas, fechamento automático de chaves/parênteses e seleção temática com brilho adaptativo.
 
 ### 2. Terminal Interativo (Estilo Portugol)
 - Streaming de saídas do comando `escreva` em tempo real.
@@ -27,7 +43,12 @@ Permite escrever programas em MiniLang diretamente no navegador, executar intera
 - **Tokens (Léxico)**: Tabela inspecionando todos os tokens emitidos pelo Scanner com filtros por tipo e busca por lexema.
 - **Problemas / Diagnósticos**: Lista detalhada de erros categorizados por fase (`Léxico`, `Sintático`, `Semântico`, `Execução`), clicáveis para navegar imediatamente até a linha correspondente no editor.
 
-### 4. Produtividade & Persistência
+### 4. Barra de Status Inferior (IDE Bar)
+- Exibe coordenadas em tempo real do cursor (**Linha e Coluna**).
+- Contadores de linhas e caracteres do documento.
+- Indicador do tema ativo e status de conexão com a API do compilador.
+
+### 5. Produtividade & Persistência
 - **Galeria de Exemplos**: Templates prontos cobrindo desde o básico até laços da Extensão D (`para`, `repita/ate`), *Dangling Else* e demonstração de otimizador.
 - **Persistência Automática**: Rascunho salvo no `localStorage` contra recarregamentos acidentais.
 - **Arquivos Locais**: Botões para abrir (`.ml`) do computador e baixar o código fonte atual.

@@ -40,6 +40,13 @@ export interface RunResponse {
   duration_ms: number;
 }
 
+export interface TerminalMessage {
+  id: string;
+  type: 'stdout' | 'stdin' | 'system' | 'error';
+  content: string;
+  timestamp: Date;
+}
+
 export type RunnerStatus =
   | "IDLE"
   | "CONNECTING"
@@ -68,4 +75,41 @@ export interface ExampleTemplate {
   description: string;
   category: "Básico" | "Extensões" | "Otimização" | "Erros";
   code: string;
+}
+
+export type ThemeId =
+  | 'jetbrains'
+  | 'arceus'
+  | 'arceus-light'
+  | 'void'
+  | 'dialga'
+  | 'giratina'
+  | 'palkia'
+  | 'rayquaza'
+  | 'zekrom'
+  | 'reshiram';
+
+export interface ThemeConfig {
+  id: ThemeId;
+  name: string;
+  subtitle: string;
+  primaryColor: string;
+  secondaryColor: string;
+  accentBg: string;
+  borderAccent: string;
+  description: string;
+  isDark: boolean;
+  previewColors: [string, string, string, string]; // [fundo, superfície, primária, destaque]
+}
+
+export type EditorFontSize = '12px' | '14px' | '16px' | '18px';
+export type EditorFontFamily = 'JetBrains Mono' | 'Fira Code';
+
+export interface EditorSettings {
+  fontSize: EditorFontSize;
+  fontFamily: EditorFontFamily;
+  enableLigatures: boolean;
+  editorLineWrapping: boolean;
+  showMinimap: boolean;
+  optimize: boolean;
 }

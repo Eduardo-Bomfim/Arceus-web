@@ -1,3 +1,10 @@
+@import '@fontsource/jetbrains-mono/400.css';
+@import '@fontsource/jetbrains-mono/500.css';
+@import '@fontsource/jetbrains-mono/700.css';
+@import '@fontsource/fira-code/400.css';
+@import '@fontsource/fira-code/600.css';
+@import '@xyflow/react/dist/style.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -6,32 +13,252 @@
   color-scheme: dark;
 }
 
+/* ==========================================
+   VARIÁVEIS DE TEMA DINÂMICAS
+   ========================================== */
+
+/* 1. TEMA OFICIAL JETBRAINS NEW UI (Padrão) */
+:root, [data-theme="jetbrains"] {
+  --bg-app: #1e1f22;
+  --bg-surface: #1e1f22;
+  --bg-panel: #2b2d30;
+  --bg-header: #2b2d30;
+  --bg-active-tab: #1e1f22;
+  --bg-subtle: #35373c;
+  --border-color: #393b40;
+  --border-glow: rgba(53, 116, 240, 0.25);
+  --accent-primary: #3574f0;
+  --accent-secondary: #59a869;
+  --accent-glow: rgba(53, 116, 240, 0.2);
+  --text-main: #dfe1e5;
+  --text-muted: #868a91;
+  --badge-glow: rgba(53, 116, 240, 0.2);
+}
+
+/* 2. TEMA ESPECIAL: ARCEUS DIVINO */
+[data-theme="arceus"] {
+  --bg-app: #0c1017;
+  --bg-surface: #121824;
+  --bg-panel: #0a0d13;
+  --bg-header: #0f1520;
+  --bg-active-tab: #162030;
+  --bg-subtle: #192334;
+  --border-color: #243247;
+  --border-glow: rgba(245, 158, 11, 0.35);
+  --accent-primary: #f59e0b;
+  --accent-secondary: #10b981;
+  --accent-glow: rgba(245, 158, 11, 0.25);
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --badge-glow: rgba(251, 191, 36, 0.2);
+}
+
+/* 2. TEMA VÁCUO CÓSMICO */
+[data-theme="void"] {
+  --bg-app: #0a0e14;
+  --bg-surface: #0f141c;
+  --bg-panel: #070a0e;
+  --bg-header: #0c1017;
+  --bg-active-tab: #131b27;
+  --bg-subtle: #162030;
+  --border-color: #1e293b;
+  --border-glow: rgba(56, 189, 248, 0.35);
+  --accent-primary: #38bdf8;
+  --accent-secondary: #6366f1;
+  --accent-glow: rgba(56, 189, 248, 0.25);
+  --text-main: #f1f5f9;
+  --text-muted: #94a3b8;
+  --badge-glow: rgba(56, 189, 248, 0.2);
+}
+
+/* 3. TEMA DIALGA TEMPORAL */
+[data-theme="dialga"] {
+  --bg-app: #060913;
+  --bg-surface: #0b1222;
+  --bg-panel: #04070e;
+  --bg-header: #080d1a;
+  --bg-active-tab: #101c34;
+  --bg-subtle: #142444;
+  --border-color: #1a2c50;
+  --border-glow: rgba(6, 182, 212, 0.35);
+  --accent-primary: #06b6d4;
+  --accent-secondary: #3b82f6;
+  --accent-glow: rgba(6, 182, 212, 0.25);
+  --text-main: #f0f9ff;
+  --text-muted: #7dd3fc;
+  --badge-glow: rgba(6, 182, 212, 0.2);
+}
+
+/* 4. TEMA GIRATINA (MUNDO DISTORÇÃO) */
+[data-theme="giratina"] {
+  --bg-app: #0d070a;
+  --bg-surface: #140b0f;
+  --bg-panel: #090406;
+  --bg-header: #100a0d;
+  --bg-active-tab: #221017;
+  --bg-subtle: #2b141d;
+  --border-color: #381a25;
+  --border-glow: rgba(244, 63, 94, 0.35);
+  --accent-primary: #f43f5e;
+  --accent-secondary: #d97706;
+  --accent-glow: rgba(244, 63, 94, 0.25);
+  --text-main: #fff1f2;
+  --text-muted: #fda4af;
+  --badge-glow: rgba(244, 63, 94, 0.2);
+}
+
+/* 5. TEMA ARCEUS LIGHT (LUZ DA CRIAÇÃO - LIGHT ELEGANTE) */
+[data-theme="arceus-light"] {
+  color-scheme: light;
+  --bg-app: #f1f5f9;
+  --bg-surface: #ffffff;
+  --bg-panel: #f8fafc;
+  --bg-header: #e2e8f0;
+  --bg-active-tab: #ffffff;
+  --bg-subtle: #f1f5f9;
+  --border-color: #cbd5e1;
+  --border-glow: rgba(217, 119, 6, 0.35);
+  --accent-primary: #d97706;
+  --accent-secondary: #059669;
+  --accent-glow: rgba(217, 119, 6, 0.25);
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --badge-glow: rgba(217, 119, 6, 0.15);
+}
+
+/* 6. TEMA PALKIA (DIMENSIONAL CÓSMICO) */
+[data-theme="palkia"] {
+  --bg-app: #0c0614;
+  --bg-surface: #130920;
+  --bg-panel: #08040d;
+  --bg-header: #10081c;
+  --bg-active-tab: #1f1033;
+  --bg-subtle: #261340;
+  --border-color: #331a54;
+  --border-glow: rgba(168, 85, 247, 0.35);
+  --accent-primary: #a855f7;
+  --accent-secondary: #ec4899;
+  --accent-glow: rgba(168, 85, 247, 0.25);
+  --text-main: #faf5ff;
+  --text-muted: #c084fc;
+  --badge-glow: rgba(168, 85, 247, 0.2);
+}
+
+/* 7. TEMA RAYQUAZA (GUARDIÃO CELESTE) */
+[data-theme="rayquaza"] {
+  --bg-app: #040d0a;
+  --bg-surface: #091813;
+  --bg-panel: #020806;
+  --bg-header: #071410;
+  --bg-active-tab: #0f261e;
+  --bg-subtle: #143328;
+  --border-color: #194435;
+  --border-glow: rgba(16, 185, 129, 0.35);
+  --accent-primary: #10b981;
+  --accent-secondary: #fbbf24;
+  --accent-glow: rgba(16, 185, 129, 0.25);
+  --text-main: #ecfdf5;
+  --text-muted: #6ee7b7;
+  --badge-glow: rgba(16, 185, 129, 0.2);
+}
+
+/* 8. TEMA ZEKROM (IDEAIS & RAIOS OLED) */
+[data-theme="zekrom"] {
+  --bg-app: #000000;
+  --bg-surface: #0a0c10;
+  --bg-panel: #000000;
+  --bg-header: #05070a;
+  --bg-active-tab: #121720;
+  --bg-subtle: #161c28;
+  --border-color: #1f2937;
+  --border-glow: rgba(0, 229, 255, 0.4);
+  --accent-primary: #00e5ff;
+  --accent-secondary: #38bdf8;
+  --accent-glow: rgba(0, 229, 255, 0.3);
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --badge-glow: rgba(0, 229, 255, 0.25);
+}
+
+/* 9. TEMA RESHIRAM (VERDADE DAS CHAMAS - LIGHT SOLAR) */
+[data-theme="reshiram"] {
+  color-scheme: light;
+  --bg-app: #f5f5f4;
+  --bg-surface: #ffffff;
+  --bg-panel: #fafaf9;
+  --bg-header: #e7e5e4;
+  --bg-active-tab: #ffffff;
+  --bg-subtle: #f5f5f4;
+  --border-color: #d6d3d1;
+  --border-glow: rgba(234, 88, 12, 0.35);
+  --accent-primary: #ea580c;
+  --accent-secondary: #f59e0b;
+  --accent-glow: rgba(234, 88, 12, 0.25);
+  --text-main: #1c1917;
+  --text-muted: #78716c;
+  --badge-glow: rgba(234, 88, 12, 0.15);
+}
+
 body {
   margin: 0;
   padding: 0;
-  background-color: #0c1017;
-  color: #e2e8f0;
+  background-color: var(--bg-app);
+  color: var(--text-main);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
   overflow: hidden;
   height: 100vh;
   width: 100vw;
+  transition: background-color 0.25s ease, color 0.25s ease;
 }
 
-/* Custom scrollbar for dark IDE aesthetic */
+/* Custom scrollbars */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #111827;
+  background: var(--bg-panel);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #374151;
+  background: var(--border-color);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #4b5563;
+  background: var(--text-muted);
+}
+
+/* Efeito de brilho da Roda da Criação do Arceus */
+.arceus-aura-glow {
+  box-shadow: 0 0 20px var(--accent-glow);
+}
+
+/* ==========================================
+   CODEMIRROR FULL HEIGHT & SEAMLESS BACKGROUND (INTELLIJ STYLE)
+   ========================================== */
+.cm-theme,
+.cm-editor {
+  height: 100% !important;
+  min-height: 100% !important;
+  background-color: var(--bg-surface) !important;
+}
+
+.cm-scroller {
+  height: 100% !important;
+  min-height: 100% !important;
+  overflow: auto !important;
+  font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace !important;
+}
+
+.cm-gutters {
+  min-height: 100% !important;
+  height: 100% !important;
+  background-color: var(--bg-header) !important;
+  border-right: 1px solid var(--border-color) !important;
+}
+
+.cm-content {
+  min-height: 100% !important;
 }
