@@ -1,6 +1,7 @@
 import type { ThemeId } from '../types';
 
 const THEME_FAVICON_COLORS: Record<ThemeId, { primary: string; glow: string }> = {
+  jetbrains: { primary: '#3574f0', glow: '#59a869' },
   arceus: { primary: '#f59e0b', glow: '#10b981' },
   'arceus-light': { primary: '#d97706', glow: '#059669' },
   void: { primary: '#38bdf8', glow: '#6366f1' },

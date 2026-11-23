@@ -4,6 +4,18 @@ import { updateDynamicFavicon } from '../utils/favicon';
 
 export const THEMES: ThemeConfig[] = [
   {
+    id: 'jetbrains',
+    name: 'JetBrains Dark',
+    subtitle: 'New UI • IntelliJ IDEA Modern',
+    primaryColor: '#3574f0',
+    secondaryColor: '#59a869',
+    accentBg: 'rgba(53, 116, 240, 0.12)',
+    borderAccent: '#3574f0',
+    description: 'Estética oficial do JetBrains New UI (IntelliJ IDEA / Fleet) com superfícies de grafite escuro e azul assinatura.',
+    isDark: true,
+    previewColors: ['#1e1f22', '#2b2d30', '#3574f0', '#59a869'],
+  },
+  {
     id: 'arceus',
     name: 'Arceus Divino',
     subtitle: 'Roda da Criação • Ouro & Esmeralda',
@@ -146,7 +158,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     } catch {
       // fallback
     }
-    return 'arceus'; // Arceus padrão
+    return 'jetbrains'; // JetBrains Dark New UI padrão
   });
 
   const [settings, setSettingsState] = useState<EditorSettings>(() => {

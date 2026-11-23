@@ -17,8 +17,26 @@
    VARIÁVEIS DE TEMA DINÂMICAS
    ========================================== */
 
-/* 1. TEMA ESPECIAL: ARCEUS DIVINO (Padrão) */
-:root, [data-theme="arceus"] {
+/* 1. TEMA OFICIAL JETBRAINS NEW UI (Padrão) */
+:root, [data-theme="jetbrains"] {
+  --bg-app: #1e1f22;
+  --bg-surface: #1e1f22;
+  --bg-panel: #2b2d30;
+  --bg-header: #2b2d30;
+  --bg-active-tab: #1e1f22;
+  --bg-subtle: #35373c;
+  --border-color: #393b40;
+  --border-glow: rgba(53, 116, 240, 0.25);
+  --accent-primary: #3574f0;
+  --accent-secondary: #59a869;
+  --accent-glow: rgba(53, 116, 240, 0.2);
+  --text-main: #dfe1e5;
+  --text-muted: #868a91;
+  --badge-glow: rgba(53, 116, 240, 0.2);
+}
+
+/* 2. TEMA ESPECIAL: ARCEUS DIVINO */
+[data-theme="arceus"] {
   --bg-app: #0c1017;
   --bg-surface: #121824;
   --bg-panel: #0a0d13;

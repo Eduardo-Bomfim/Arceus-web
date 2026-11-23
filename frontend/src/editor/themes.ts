@@ -5,6 +5,61 @@ import type { Extension } from '@codemirror/state';
 import type { ThemeId } from '../types';
 
 // ==========================================
+// 0. TEMA OFICIAL: JETBRAINS DARK (NEW UI / INTELLIJ IDEA)
+// ==========================================
+const jetbrainsEditorViewTheme = EditorView.theme({
+  '&': {
+    height: '100%',
+    backgroundColor: '#1e1f22',
+    color: '#bcbec4',
+  },
+  '.cm-scroller': {
+    lineHeight: '1.6',
+    fontFamily: "'JetBrains Mono', Consolas, monospace",
+  },
+  '.cm-gutters': {
+    backgroundColor: '#1e1f22',
+    color: '#4b5059',
+    borderRight: '1px solid #2b2d30',
+    paddingRight: '10px',
+  },
+  '.cm-activeLineGutter': {
+    backgroundColor: 'transparent',
+    color: '#a1a3ab',
+    fontWeight: 'bold',
+  },
+  '.cm-activeLine': {
+    backgroundColor: '#26282e',
+  },
+  '.cm-cursor': {
+    borderLeftColor: '#3574f0',
+    borderLeftWidth: '2px',
+  },
+  '.cm-selectionBackground, ::selection': {
+    backgroundColor: '#2e436e !important',
+  },
+  '.cm-tooltip-lint': {
+    backgroundColor: '#2b2d30',
+    border: '1px solid #393b40',
+    color: '#dfe1e5',
+    borderRadius: '4px',
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)',
+  },
+});
+
+const jetbrainsHighlightStyle = HighlightStyle.define([
+  { tag: t.keyword, color: '#cf8e6d', fontWeight: '600' }, // JetBrains Orange
+  { tag: t.typeName, color: '#56a8f5', fontWeight: '600' }, // JetBrains Type Blue
+  { tag: t.bool, color: '#cf8e6d', fontWeight: '600' }, // JetBrains Boolean Orange
+  { tag: t.number, color: '#2aacb8' }, // JetBrains Cyan Number
+  { tag: t.operator, color: '#bcbec4' },
+  { tag: t.punctuation, color: '#bcbec4' },
+  { tag: t.comment, color: '#7a7e85', fontStyle: 'italic' }, // JetBrains Gray Comment
+  { tag: t.variableName, color: '#bcbec4' },
+  { tag: t.invalid, color: '#f75464', textDecoration: 'underline wavy #f75464' },
+]);
+
+// ==========================================
 // 1. TEMA ESPECIAL: ARCEUS DIVINO (DARK)
 // ==========================================
 const arceusEditorViewTheme = EditorView.theme({
@@ -443,6 +498,8 @@ const reshiramHighlightStyle = HighlightStyle.define([
 
 export function getEditorThemeExtension(theme: ThemeId): Extension[] {
   switch (theme) {
+    case 'jetbrains':
+      return [jetbrainsEditorViewTheme, syntaxHighlighting(jetbrainsHighlightStyle)];
     case 'arceus':
       return [arceusEditorViewTheme, syntaxHighlighting(arceusHighlightStyle)];
     case 'arceus-light':

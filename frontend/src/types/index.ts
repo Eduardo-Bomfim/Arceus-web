@@ -78,6 +78,7 @@ export interface ExampleTemplate {
 }
 
 export type ThemeId =
+  | 'jetbrains'
   | 'arceus'
   | 'arceus-light'
   | 'void'
