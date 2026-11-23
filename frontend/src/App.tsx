@@ -302,8 +302,9 @@ function IdeWorkspace() {
 
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden bg-[var(--bg-app)] text-[var(--text-main)] transition-colors">
-      {/* Topbar estilo IntelliJ IDEA */}
+      {/* Topbar estilo JetBrains New UI */}
       <Topbar
+        activeFileName={activeFile?.name || 'main.ml'}
         status={status}
         optimize={optimize}
         onToggleOptimize={(opt) => {
@@ -313,7 +314,7 @@ function IdeWorkspace() {
         onRun={handleRun}
         onAbort={abortExecution}
         onAnalyze={handleAnalyze}
-        onSelectExample={(code) => handleSelectExample(code)}
+        onSelectExample={(code, title) => handleSelectExample(code, title)}
         onOpenFile={handleOpenFile}
         onDownloadFile={handleDownloadFile}
         onShare={handleShare}
@@ -414,12 +415,12 @@ function IdeWorkspace() {
                 </div>
               </Panel>
 
-              {/* Barra de Redimensionamento Horizontal ou Vertical */}
+              {/* Barra de Redimensionamento Horizontal ou Vertical estilo JetBrains */}
               <Separator
                 className={
                   panelPosition === 'bottom'
-                    ? 'h-1.5 w-full bg-[var(--border-color)] hover:bg-amber-400/50 transition-colors cursor-row-resize active:bg-amber-400 border-y border-[var(--border-color)] shrink-0'
-                    : 'w-1.5 h-full bg-[var(--border-color)] hover:bg-amber-400/50 transition-colors cursor-col-resize active:bg-amber-400 border-x border-[var(--border-color)] shrink-0'
+                    ? 'h-1 w-full bg-[#1e1f22] hover:bg-[#3574f0] transition-colors cursor-row-resize active:bg-[#3574f0] shrink-0'
+                    : 'w-1 h-full bg-[#1e1f22] hover:bg-[#3574f0] transition-colors cursor-col-resize active:bg-[#3574f0] shrink-0'
                 }
               />
 
@@ -458,6 +459,7 @@ function IdeWorkspace() {
                       onSendStdin={sendStdin}
                       onClear={clearConsole}
                       onAbort={abortExecution}
+                      onRerun={handleRun}
                     />
                   )}
 

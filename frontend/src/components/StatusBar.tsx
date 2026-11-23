@@ -1,4 +1,4 @@
-import { Layers, FileCode, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, GitBranch, Layers } from 'lucide-react';
 import type { HealthStatus } from '../types';
 import { useTheme } from '../context/ThemeContext';
 
@@ -19,73 +19,101 @@ export function StatusBar({
   health,
   errorsCount,
 }: StatusBarProps) {
-  const { themeConfig } = useTheme();
+  const { themeConfig, setIsSettingsOpen } = useTheme();
 
   return (
-    <footer className="flex items-center justify-between px-3 py-1 bg-[var(--bg-header)] border-t border-[var(--border-color)] text-[11px] text-[var(--text-muted)] select-none font-mono z-10">
-      {/* Lado Esquerdo: Diagnósticos e Status da MiniLang */}
-      <div className="flex items-center gap-3">
+    <footer className="h-6 px-3 bg-[#2b2d30] border-t border-[#393b40] text-[11px] text-[#868a91] flex items-center justify-between select-none font-sans z-20 shrink-0">
+      {/* 1. Lado Esquerdo: Git Branch + Inspeção de Código (JetBrains Problems Widget) + MiniLang */}
+      <div className="flex items-center gap-2.5">
+        {/* Git Branch */}
+        <div
+          title="Git Branch: main"
+          className="flex items-center gap-1 hover:text-[#dfe1e5] cursor-pointer transition"
+        >
+          <GitBranch className="w-3 h-3 text-[#868a91]" />
+          <span className="font-mono text-[10.5px]">main</span>
+        </div>
+
+        <span className="text-[#393b40]">|</span>
+
+        {/* Inspeção de Código / Problemas */}
         {errorsCount === 0 ? (
-          <span className="flex items-center gap-1 text-emerald-400 font-medium">
+          <span className="flex items-center gap-1 text-[#59a869] font-medium cursor-pointer" title="Inspection: No problems found">
             <CheckCircle2 className="w-3 h-3" />
-            <span className="hidden sm:inline">Código Válido</span>
+            <span className="hidden sm:inline">No problems</span>
           </span>
         ) : (
-          <span className="flex items-center gap-1 text-rose-400 font-medium">
+          <span className="flex items-center gap-1 text-[#f75464] font-medium cursor-pointer" title="Inspection: Errors detected">
             <AlertTriangle className="w-3 h-3" />
             <span>
-              {errorsCount} {errorsCount === 1 ? 'problema' : 'problemas'}
+              {errorsCount} {errorsCount === 1 ? 'problem' : 'problems'}
             </span>
           </span>
         )}
 
-        <span className="text-[var(--border-color)]">|</span>
+        <span className="text-[#393b40] hidden sm:inline">|</span>
 
-        <span className="flex items-center gap-1 text-[var(--text-main)] font-semibold">
-          <FileCode className="w-3 h-3 text-[var(--accent-primary)]" />
-          <span>MiniLang (Arceus 0.1.0)</span>
+        <span className="hidden sm:inline text-[#868a91]">
+          MiniLang (Arceus 0.1.0)
         </span>
       </div>
 
-      {/* Lado Direito: Cursor, Caracteres, Tema Ativo e API */}
-      <div className="flex items-center gap-3">
-        <span className="hidden md:inline">
-          {lineCount} {lineCount === 1 ? 'linha' : 'linhas'}, {charCount} carac.
+      {/* 2. Lado Direito: Posição do Cursor, Indentação, Encoding, Linhas e Conexão */}
+      <div className="flex items-center gap-2.5">
+        <span className="hidden md:inline text-[#868a91]">
+          {lineCount} lines, {charCount} chars
         </span>
 
-        <span className="text-[var(--border-color)] hidden md:inline">|</span>
+        <span className="text-[#393b40] hidden md:inline">|</span>
 
-        {/* Posição do Cursor */}
-        <span className="text-[var(--text-main)] font-medium">
-          Ln {cursorLine}, Col {cursorCol}
+        {/* Posição do Cursor (Ln X, Col Y) */}
+        <span className="text-[#dfe1e5] font-mono hover:text-white cursor-pointer transition">
+          {cursorLine}:{cursorCol}
         </span>
 
-        <span className="text-[var(--border-color)]">|</span>
+        <span className="text-[#393b40]">|</span>
 
-        <span>UTF-8</span>
+        <span className="hover:text-[#dfe1e5] cursor-pointer transition">2 spaces</span>
 
-        <span className="text-[var(--border-color)]">|</span>
+        <span className="text-[#393b40]">|</span>
+
+        <span className="hover:text-[#dfe1e5] cursor-pointer transition">UTF-8</span>
+
+        <span className="text-[#393b40]">|</span>
+
+        <span className="hover:text-[#dfe1e5] cursor-pointer transition">CRLF</span>
+
+        <span className="text-[#393b40] hidden sm:inline">|</span>
 
         {/* Tema Ativo */}
-        <span
-          className="flex items-center gap-1 font-semibold"
-          style={{ color: themeConfig.primaryColor }}
-          title={themeConfig.description}
+        <button
+          onClick={() => setIsSettingsOpen(true)}
+          className="hidden sm:flex items-center gap-1 hover:text-[#dfe1e5] transition"
+          title={`Theme: ${themeConfig.name} (Click to open Settings)`}
         >
-          <Layers className="w-3 h-3" />
-          <span className="hidden sm:inline">{themeConfig.name}</span>
-        </span>
+          <Layers className="w-3 h-3 text-[#3574f0]" />
+          <span>{themeConfig.name}</span>
+        </button>
 
-        <span className="text-[var(--border-color)] hidden sm:inline">|</span>
+        <span className="text-[#393b40] hidden sm:inline">|</span>
 
-        {/* API Backend indicator */}
+        {/* Status da Conexão */}
         <span className="hidden sm:inline">
           {health.state === 'online' ? (
-            <span className="text-emerald-400">● Conectado</span>
+            <span className="text-[#59a869] flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#59a869]" />
+              Connected
+            </span>
           ) : health.state === 'sleeping' ? (
-            <span className="text-amber-400 animate-pulse">● Acordando API</span>
+            <span className="text-[#f5a623] flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#f5a623] animate-pulse" />
+              Waking API
+            </span>
           ) : (
-            <span className="text-rose-400">● Desconectado</span>
+            <span className="text-[#f75464] flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#f75464]" />
+              Disconnected
+            </span>
           )}
         </span>
       </div>
