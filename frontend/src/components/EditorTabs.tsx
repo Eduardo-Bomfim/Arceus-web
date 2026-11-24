@@ -1,17 +1,9 @@
 import { useState } from 'react';
 import type { KeyboardEvent } from 'react';
-import {
-  Plus,
-  X,
-  Copy,
-  Check,
-  Map,
-  PanelBottom,
-  PanelRight,
-  Sparkles,
-} from 'lucide-react';
+import { Plus, X, Copy, Check, Sparkles, Download } from 'lucide-react';
 import type { EditorFile } from '../hooks/useFiles';
 import { Breadcrumbs } from './Breadcrumbs';
+import { useTheme } from '../context/ThemeContext';
 
 interface EditorTabsProps {
   files: EditorFile[];
@@ -22,29 +14,9 @@ interface EditorTabsProps {
   onRenameFile: (id: string, newName: string) => void;
   onCopyCode?: () => void;
   onFormatCode?: () => void;
-  showMinimap?: boolean;
-  onToggleMinimap?: () => void;
-  sidebarOpen?: boolean;
-  onToggleSidebar?: () => void;
-  panelPosition?: 'bottom' | 'right';
-  onTogglePanelPosition?: () => void;
+  onDownloadFile?: () => void;
   cursorLine?: number;
   onNavigateToLine?: (line: number) => void;
-}
-
-// Ícone oficial de arquivo MiniLang estilo JetBrains
-function JetBrainsMlTabIcon({ isActive }: { isActive: boolean }) {
-  return (
-    <div
-      className={`w-3.5 h-3.5 rounded-[2px] flex items-center justify-center shrink-0 ${
-        isActive
-          ? 'bg-[var(--accent-primary)]/25 text-[var(--accent-primary)] border border-[var(--accent-primary)]/50'
-          : 'bg-[var(--accent-primary)]/10 text-[var(--text-muted)] border border-transparent'
-      }`}
-    >
-      <span className="text-[8px] font-black font-mono leading-none">M</span>
-    </div>
-  );
 }
 
 export function EditorTabs({
@@ -56,13 +28,11 @@ export function EditorTabs({
   onRenameFile,
   onCopyCode,
   onFormatCode,
-  showMinimap = true,
-  onToggleMinimap,
-  panelPosition = 'bottom',
-  onTogglePanelPosition,
+  onDownloadFile,
   cursorLine = 1,
   onNavigateToLine,
 }: EditorTabsProps) {
+  const { settings } = useTheme();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [copied, setCopied] = useState(false);
@@ -94,7 +64,7 @@ export function EditorTabs({
     if (onCopyCode) {
       onCopyCode();
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      setTimeout(() => setCopied(false), 1800);
     }
   };
 
@@ -107,11 +77,13 @@ export function EditorTabs({
   };
 
   return (
-    <div className="flex flex-col select-none shrink-0 bg-[var(--bg-header)] border-b border-[var(--border-color)] transition-colors">
-      {/* 1. Barra de Abas do Editor - Estilo JetBrains New UI */}
-      <div className="flex items-center justify-between h-[34px] px-1 bg-[var(--bg-header)] overflow-x-auto no-scrollbar">
-        {/* Abas e Botão Nova Aba */}
-        <div className="flex items-center h-full overflow-x-auto no-scrollbar">
+    <div className="flex flex-col select-none shrink-0 bg-[var(--bg-panel)] transition-colors">
+      {/* Barra de Abas Minimalista */}
+      <div
+        style={{ height: 'var(--ui-tab-h)' }}
+        className="flex items-center justify-between px-2 border-b border-[var(--border-subtle)] overflow-x-auto no-scrollbar"
+      >
+        <div className="flex items-center gap-1 h-full overflow-x-auto no-scrollbar py-1">
           {files.map((file) => {
             const isActive = file.id === activeFileId;
             const isEditing = file.id === editingId;
@@ -121,13 +93,17 @@ export function EditorTabs({
                 key={file.id}
                 onClick={() => onSelectFile(file.id)}
                 onDoubleClick={() => handleStartRename(file)}
-                className={`group flex items-center gap-2 h-full px-3 cursor-pointer text-xs transition select-none shrink-0 border-r border-[var(--border-color)]/60 relative ${
+                className={`group flex items-center gap-2 h-full px-2.5 cursor-pointer text-xs transition select-none shrink-0 rounded-[var(--ui-radius)] ${
                   isActive
-                    ? 'bg-[var(--bg-surface)] text-[var(--text-main)] font-semibold border-b-2 border-b-[var(--accent-primary)]'
-                    : 'bg-[var(--bg-header)] text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-subtle)]'
+                    ? 'bg-[var(--bg-surface)] text-[var(--text-main)] font-medium shadow-sm'
+                    : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-subtle-soft)]'
                 }`}
               >
-                <JetBrainsMlTabIcon isActive={isActive} />
+                <span
+                  className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                    isActive ? 'bg-[var(--accent-primary)]' : 'bg-transparent'
+                  }`}
+                />
 
                 {isEditing ? (
                   <input
@@ -136,24 +112,25 @@ export function EditorTabs({
                     onChange={(e) => setEditName(e.target.value)}
                     onBlur={() => handleFinishRename(file.id)}
                     onKeyDown={(e) => handleKeyDown(e, file.id)}
-                    className="bg-[var(--bg-panel)] text-[var(--text-main)] px-1 py-0.5 rounded text-xs outline-none border border-[var(--accent-primary)] w-24 font-mono"
+                    className="bg-[var(--bg-app)] text-[var(--text-main)] px-1.5 py-0.5 rounded text-xs outline-none border border-[var(--accent-primary)] w-28 font-mono"
                     autoFocus
                     onClick={(e) => e.stopPropagation()}
                   />
                 ) : (
-                  <span className="truncate max-w-[140px] font-mono text-[11.5px]">{file.name}</span>
+                  <span className="truncate max-w-[160px] font-mono text-[11.5px]">
+                    {file.name}
+                  </span>
                 )}
 
-                {/* Botão Fechar Aba (estilo JetBrains) */}
                 {files.length > 1 && (
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       onCloseFile(file.id);
                     }}
-                    title="Close Tab (Ctrl+F4)"
-                    className={`p-0.5 rounded-[3px] hover:bg-[var(--bg-subtle)] text-[var(--text-muted)] hover:text-[var(--text-main)] transition ${
-                      isActive ? 'opacity-70 hover:opacity-100' : 'opacity-0 group-hover:opacity-100'
+                    title="Fechar aba"
+                    className={`p-0.5 rounded hover:bg-[var(--bg-subtle)] text-[var(--text-muted)] hover:text-[var(--text-main)] transition ${
+                      isActive ? 'opacity-65 hover:opacity-100' : 'opacity-0 group-hover:opacity-100'
                     }`}
                   >
                     <X className="w-3 h-3" />
@@ -163,90 +140,65 @@ export function EditorTabs({
             );
           })}
 
-          {/* Botão Nova Aba */}
           <button
             onClick={onCreateFile}
-            title="New File"
-            className="w-7 h-7 ml-1 rounded-[4px] hover:bg-[var(--bg-subtle)] text-[var(--text-muted)] hover:text-[var(--text-main)] transition flex items-center justify-center shrink-0"
+            title="Novo arquivo (.ml)"
+            className="w-6 h-6 ml-0.5 rounded-[var(--ui-radius)] hover:bg-[var(--bg-subtle)] text-[var(--text-muted)] hover:text-[var(--text-main)] transition flex items-center justify-center shrink-0"
           >
             <Plus className="w-3.5 h-3.5" />
           </button>
         </div>
 
-        {/* Controles da Direita: Reformat, Layout Split, Minimap, Copy */}
-        <div className="flex items-center gap-1 px-1.5 shrink-0 text-[var(--text-muted)]">
-          {/* Botão Formatar Código (Ctrl+Alt+L no JetBrains) */}
+        {/* Ações sutis do editor à direita */}
+        <div className="flex items-center gap-0.5 pl-2 shrink-0 text-[var(--text-muted)]">
           {onFormatCode && (
             <button
               onClick={handleFormat}
-              title="Reformat Code (Shift+Alt+F ou Ctrl+Alt+L)"
-              className="flex items-center gap-1 px-2 py-1 rounded-[4px] text-[11px] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-main)] transition"
+              title="Formatar código (Shift+Alt+F)"
+              className="flex items-center gap-1.5 px-2 py-1 rounded-[var(--ui-radius)] text-[11px] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-main)] transition"
             >
               <Sparkles className="w-3 h-3 text-[var(--accent-primary)]" />
-              <span className="hidden sm:inline font-sans">
-                {formatted ? 'Reformatted' : 'Reformat'}
+              <span className="hidden sm:inline">
+                {formatted ? 'Formatado' : 'Formatar'}
               </span>
             </button>
           )}
 
-          {/* Alternar Posição do Split (Abaixo vs Direita) */}
-          {onTogglePanelPosition && (
-            <button
-              onClick={onTogglePanelPosition}
-              title={
-                panelPosition === 'bottom'
-                  ? 'Move Tool Window to Right'
-                  : 'Move Tool Window to Bottom'
-              }
-              className="p-1.5 rounded-[4px] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-main)] transition flex items-center gap-1"
-            >
-              {panelPosition === 'bottom' ? (
-                <PanelRight className="w-3.5 h-3.5" />
-              ) : (
-                <PanelBottom className="w-3.5 h-3.5" />
-              )}
-            </button>
-          )}
-
-          {/* Toggle do Minimap */}
-          {onToggleMinimap && (
-            <button
-              onClick={onToggleMinimap}
-              title={showMinimap ? 'Hide Minimap' : 'Show Minimap'}
-              className={`p-1.5 rounded-[4px] transition ${
-                showMinimap
-                  ? 'text-[var(--text-main)] bg-[var(--bg-subtle)]'
-                  : 'hover:bg-[var(--bg-subtle)] hover:text-[var(--text-main)]'
-              }`}
-            >
-              <Map className="w-3.5 h-3.5" />
-            </button>
-          )}
-
-          {/* Copiar Código */}
           {onCopyCode && (
             <button
               onClick={handleCopy}
-              title="Copy Code to Clipboard"
-              className="p-1.5 rounded-[4px] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-main)] transition"
+              title="Copiar código"
+              className="p-1.5 rounded-[var(--ui-radius)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-main)] transition"
             >
               {copied ? (
-                <Check className="w-3.5 h-3.5 text-emerald-400" />
+                <Check className="w-3.5 h-3.5 text-[var(--accent-secondary)]" />
               ) : (
                 <Copy className="w-3.5 h-3.5" />
               )}
             </button>
           )}
+
+          {onDownloadFile && (
+            <button
+              onClick={onDownloadFile}
+              title="Baixar arquivo (.ml)"
+              className="p-1.5 rounded-[var(--ui-radius)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text-main)] transition"
+            >
+              <Download className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
       </div>
 
-      {/* 2. JetBrains Navigation Bar (Breadcrumbs) */}
-      <Breadcrumbs
-        fileName={activeFile?.name || 'main.ml'}
-        sourceCode={activeFile?.content || ''}
-        cursorLine={cursorLine}
-        onNavigateToLine={onNavigateToLine}
-      />
+      {/* Breadcrumbs opcionais (desativados por padrão para menor poluição visual) */}
+      {settings.showBreadcrumbs && (
+        <Breadcrumbs
+          fileName={activeFile?.name || 'programa.ml'}
+          sourceCode={activeFile?.content || ''}
+          cursorLine={cursorLine}
+          onNavigateToLine={onNavigateToLine}
+        />
+      )}
     </div>
   );
 }

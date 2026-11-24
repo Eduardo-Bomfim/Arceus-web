@@ -1,116 +1,106 @@
-import { CheckCircle2, AlertTriangle, Layers } from 'lucide-react';
-import type { HealthStatus } from '../types';
+import { CheckCircle2, AlertCircle, Palette, Terminal, Zap } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 
 interface StatusBarProps {
   cursorLine: number;
   cursorCol: number;
-  charCount: number;
   lineCount: number;
-  health: HealthStatus;
   errorsCount: number;
+  isPanelOpen: boolean;
+  onTogglePanel: () => void;
+  onOpenProblems: () => void;
 }
 
 export function StatusBar({
   cursorLine,
   cursorCol,
-  charCount,
   lineCount,
-  health,
   errorsCount,
+  isPanelOpen,
+  onTogglePanel,
+  onOpenProblems,
 }: StatusBarProps) {
-  const { themeConfig, setIsSettingsOpen } = useTheme();
+  const { themeConfig, settings, openSettings } = useTheme();
+
+  if (!settings.showStatusBar) return null;
 
   return (
-    <footer className="h-6 px-3 bg-[var(--bg-header)] border-t border-[var(--border-color)] text-[11px] text-[var(--text-muted)] flex items-center justify-between select-none font-sans z-20 shrink-0 transition-colors">
-      {/* 1. Lado Esquerdo: Inspeção de Código (JetBrains Problems Widget) + MiniLang */}
-      <div className="flex items-center gap-2.5">
-        {/* Inspeção de Código / Problemas */}
-        {errorsCount === 0 ? (
-          <span
-            className="flex items-center gap-1 text-[var(--accent-secondary)] font-medium cursor-pointer"
-            title="Inspection: No problems found"
-          >
-            <CheckCircle2 className="w-3 h-3" />
-            <span className="hidden sm:inline">No problems</span>
-          </span>
-        ) : (
-          <span
-            className="flex items-center gap-1 text-red-400 font-medium cursor-pointer"
-            title="Inspection: Errors detected"
-          >
-            <AlertTriangle className="w-3 h-3" />
-            <span>
-              {errorsCount} {errorsCount === 1 ? 'problem' : 'problems'}
-            </span>
-          </span>
-        )}
-
-        <span className="text-[var(--border-color)]">|</span>
-
-        <span className="hidden sm:inline text-[var(--text-muted)]">
-          MiniLang (Arceus 0.1.0)
-        </span>
-      </div>
-
-      {/* 2. Lado Direito: Posição do Cursor, Indentação, Encoding, Linhas e Conexão */}
-      <div className="flex items-center gap-2.5">
-        <span className="hidden md:inline text-[var(--text-muted)]">
-          {lineCount} lines, {charCount} chars
-        </span>
-
-        <span className="text-[var(--border-color)] hidden md:inline">|</span>
-
-        {/* Posição do Cursor (Ln X, Col Y) */}
-        <span className="text-[var(--text-main)] font-mono hover:text-white cursor-pointer transition">
-          {cursorLine}:{cursorCol}
-        </span>
-
-        <span className="text-[var(--border-color)]">|</span>
-
-        <span className="hover:text-[var(--text-main)] cursor-pointer transition">2 spaces</span>
-
-        <span className="text-[var(--border-color)]">|</span>
-
-        <span className="hover:text-[var(--text-main)] cursor-pointer transition">UTF-8</span>
-
-        <span className="text-[var(--border-color)]">|</span>
-
-        <span className="hover:text-[var(--text-main)] cursor-pointer transition">CRLF</span>
-
-        <span className="text-[var(--border-color)] hidden sm:inline">|</span>
-
-        {/* Tema Ativo */}
+    <footer className="h-6 px-3 bg-[var(--bg-app)] text-[11px] text-[var(--text-muted)] flex items-center justify-between select-none z-20 shrink-0 transition-colors">
+      {/* Esquerda: Diagnósticos + Toggle do Painel + Status --opt */}
+      <div className="flex items-center gap-3">
         <button
-          onClick={() => setIsSettingsOpen(true)}
-          className="hidden sm:flex items-center gap-1 hover:text-[var(--text-main)] transition"
-          title={`Theme: ${themeConfig.name} (Click to open Settings)`}
+          onClick={onOpenProblems}
+          className={`flex items-center gap-1.5 transition hover:opacity-90 ${
+            errorsCount === 0
+              ? 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
+              : 'text-rose-400 font-medium'
+          }`}
+          title="Abrir aba de Problemas (Alt+6)"
         >
-          <Layers className="w-3 h-3 text-[var(--accent-primary)]" />
-          <span>{themeConfig.name}</span>
+          {errorsCount === 0 ? (
+            <>
+              <CheckCircle2 className="w-3 h-3 text-[var(--accent-secondary)]" />
+              <span className="hidden sm:inline">Nenhum problema</span>
+            </>
+          ) : (
+            <>
+              <AlertCircle className="w-3 h-3" />
+              <span>
+                {errorsCount} {errorsCount === 1 ? 'problema' : 'problemas'}
+              </span>
+            </>
+          )}
         </button>
 
-        <span className="text-[var(--border-color)] hidden sm:inline">|</span>
+        <button
+          onClick={onTogglePanel}
+          className={`flex items-center gap-1 px-1.5 py-0.2 rounded transition ${
+            isPanelOpen
+              ? 'text-[var(--text-main)]'
+              : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'
+          }`}
+          title="Alternar Terminal e Painel (Alt+4)"
+        >
+          <Terminal className="w-3 h-3" />
+          <span className="hidden sm:inline">Terminal</span>
+        </button>
 
-        {/* Status da Conexão */}
-        <span className="hidden sm:inline">
-          {health.state === 'online' ? (
-            <span className="text-[var(--accent-secondary)] flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-[var(--accent-secondary)]" />
-              Connected
-            </span>
-          ) : health.state === 'sleeping' ? (
-            <span className="text-amber-400 flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-              Waking API
-            </span>
-          ) : (
-            <span className="text-red-400 flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
-              Disconnected
-            </span>
-          )}
+        {settings.optimize && (
+          <button
+            onClick={() => openSettings('compiler')}
+            title="Otimizador Constant Folding (--opt) ativo — Clique para configurar"
+            className="flex items-center gap-1 text-amber-400/90 hover:text-amber-300 transition"
+          >
+            <Zap className="w-3 h-3" />
+            <span className="font-mono text-[10.5px]">--opt</span>
+          </button>
+        )}
+      </div>
+
+      {/* Direita: Cursor Real + Indentação Real + Tema */}
+      <div className="flex items-center gap-3">
+        <span className="font-mono text-[var(--text-main)]">
+          Ln {cursorLine}, Col {cursorCol}
         </span>
+
+        <button
+          onClick={() => openSettings('editor')}
+          title="Configurar tamanho de indentação e fonte"
+          className="hidden sm:inline hover:text-[var(--text-main)] transition"
+        >
+          {settings.tabSize} espaços
+        </button>
+
+        <span className="hidden md:inline">{lineCount} linhas</span>
+
+        <button
+          onClick={() => openSettings('appearance')}
+          className="flex items-center gap-1.5 hover:text-[var(--text-main)] transition"
+          title="Alterar tema ou aparência (Ctrl+,)"
+        >
+          <Palette className="w-3 h-3 text-[var(--accent-primary)]" />
+          <span>{themeConfig.name}</span>
+        </button>
       </div>
     </footer>
   );

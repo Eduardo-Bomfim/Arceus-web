@@ -16,8 +16,8 @@ export const BlockNode = React.memo(function BlockNode({
       onClick={() => data.onNodeClick?.(data.startLine, data.endLine)}
       className={`min-w-[240px] max-w-[280px] rounded-xl border shadow-lg cursor-pointer transition-all duration-200 select-none overflow-hidden ${
         isActive
-          ? 'bg-[var(--bg-surface)] border-[var(--accent-primary)] ring-2 ring-[var(--accent-primary)]/50 scale-105 shadow-xl'
-          : 'bg-[var(--bg-surface)]/95 hover:bg-[var(--bg-surface)] border-[var(--border-color)] hover:border-slate-500'
+          ? 'bg-[var(--bg-surface)] border-[var(--accent-primary)] ring-2 ring-[var(--accent-border)] scale-105 shadow-xl'
+          : 'bg-[var(--bg-surface)] border-[var(--border-color)] hover:border-slate-500'
       }`}
     >
       <Handle
@@ -38,7 +38,7 @@ export const BlockNode = React.memo(function BlockNode({
       </div>
 
       {/* Instruções */}
-      <div className="p-2.5 space-y-1 font-mono text-[11px] leading-relaxed bg-[var(--bg-panel)]/40">
+      <div className="p-2.5 space-y-1 font-mono text-[11px] leading-relaxed bg-[var(--bg-panel-soft)]">
         {instructions.length > 0 ? (
           instructions.map((line, idx) => (
             <div key={idx} className="text-[var(--text-main)] truncate opacity-90">

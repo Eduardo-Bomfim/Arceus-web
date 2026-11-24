@@ -7,7 +7,6 @@ import { Topbar } from './components/Topbar';
 import { Terminal } from './components/Terminal';
 import { StatusBar } from './components/StatusBar';
 import { EditorTabs } from './components/EditorTabs';
-import { ActivityBar } from './components/ActivityBar';
 import { ProjectSidebar } from './components/ProjectSidebar';
 import { ToolWindowHeader } from './components/ToolWindowHeader';
 import { BottomToolStripe } from './components/BottomToolStripe';
@@ -24,6 +23,7 @@ import { ToastProvider, useToast } from './context/ToastContext';
 import { useArceusRunner } from './hooks/useArceusRunner';
 import { useTabs } from './hooks/useTabs';
 import { useFiles } from './hooks/useFiles';
+import { checkHealth, runProgramHttp } from './api/client';
 import { downloadFile, openLocalFile } from './utils/file-utils';
 import { getSharedCode, generateShareUrl } from './utils/share';
 import { formatMiniLangCode } from './editor/formatter';
@@ -38,13 +38,14 @@ function IdeWorkspace() {
     activeFileId,
     selectFile,
     updateContent,
+    updateFileContentById,
     createFile,
+    upsertFile,
     closeFile,
     renameFile,
     loadExternalFile,
   } = useFiles();
 
-  // Layout states estilo IntelliJ IDEA
   const [panelPosition, setPanelPosition] = useState<'bottom' | 'right'>(() => {
     try {
       const saved = localStorage.getItem('arceus_panel_position');
@@ -52,37 +53,30 @@ function IdeWorkspace() {
     } catch {
       // ignore
     }
-    return 'bottom'; // Padrão: console/problemas na parte inferior do arquivo
+    return 'bottom';
   });
 
   const [isToolWindowVisible, setIsToolWindowVisible] = useState(true);
   const [isToolWindowMaximized, setIsToolWindowMaximized] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
-
-  const optimize = settings.optimize;
-  const handleToggleOptimize = (opt: boolean) => {
-    updateSettings({ optimize: opt });
-    if (activeFile) {
-      runAnalysis(activeFile.content, opt);
-    }
-  };
-  const [showMinimap, setShowMinimap] = useState(true);
   const [isPaletteOpen, setIsPaletteOpen] = useState(false);
   const [cursorPos, setCursorPos] = useState({ line: 1, col: 1 });
 
+  const optimize = settings.optimize;
   const editorRef = useRef<CodeEditorRef>(null);
   const debounceTimerRef = useRef<number | null>(null);
+  const didCheckShareRef = useRef(false);
+  const lastAnalyzedIdRef = useRef<string | null>(null);
 
   const {
     status,
     messages,
     waitingInput,
     errors,
-    exitCode,
-    durationMs,
     analysisData,
     isAnalyzing,
     health,
+    appendMessage,
     runProgram,
     runAnalysis,
     sendStdin,
@@ -90,44 +84,82 @@ function IdeWorkspace() {
     clearConsole,
   } = useArceusRunner();
 
-  // Detect shared code in URL on load
+  const handleToggleOptimize = useCallback(
+    (opt: boolean) => {
+      updateSettings({ optimize: opt });
+      if (activeFile) {
+        void runAnalysis(activeFile.content, opt);
+      }
+    },
+    [activeFile, runAnalysis, updateSettings]
+  );
+
+  // Carrega código compartilhado na URL uma única vez ao iniciar
   useEffect(() => {
+    if (didCheckShareRef.current) return;
+    didCheckShareRef.current = true;
+
     const shared = getSharedCode();
     if (shared) {
       loadExternalFile('compartilhado.ml', shared);
       showToast('Código compartilhado carregado com sucesso!', 'info');
-      runAnalysis(shared, optimize);
+      void runAnalysis(shared, optimize);
     }
-  }, []);
+  }, [loadExternalFile, optimize, runAnalysis, showToast]);
 
-  // Run initial analysis on current active file
+  // Análise estática inicial quando o arquivo ativo muda
   useEffect(() => {
-    if (activeFile?.content) {
-      runAnalysis(activeFile.content, optimize);
-    }
-  }, [activeFileId]);
+    if (!activeFile?.content) return;
+    if (lastAnalyzedIdRef.current === activeFileId) return;
+    lastAnalyzedIdRef.current = activeFileId;
+    void runAnalysis(activeFile.content, optimize);
+  }, [activeFileId, activeFile, optimize, runAnalysis]);
 
-  // Code change with debounced analysis
   const handleCodeChange = (newCode: string) => {
     updateContent(newCode);
 
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
     }
+    if (!settings.autoAnalyze) return;
+
     debounceTimerRef.current = window.setTimeout(() => {
-      runAnalysis(newCode, optimize);
-    }, 400);
+      void runAnalysis(newCode, optimize);
+    }, settings.analyzeDelay);
   };
 
-  // Run execution
+  // Executa o arquivo ativo no Terminal Interativo
   const handleRun = useCallback(() => {
     if (!activeFile) return;
     setActiveTab('console');
     setIsToolWindowVisible(true);
-    runProgram(activeFile.content, optimize);
-  }, [activeFile, optimize, runProgram, setActiveTab]);
+    void runProgram(activeFile.content, optimize, {
+      clear: settings.clearBeforeRun,
+      commandLabel: `arceus run ${activeFile.name}${optimize ? ' --opt' : ''}`,
+      maxSteps: settings.maxSteps,
+      fileName: activeFile.name,
+    });
+  }, [
+    activeFile,
+    optimize,
+    runProgram,
+    setActiveTab,
+    settings.clearBeforeRun,
+    settings.maxSteps,
+  ]);
 
-  // Run static analysis immediately
+  // Execução acionada diretamente via comandos do Terminal
+  const handleTerminalRunFile = useCallback(
+    async (source: string, opt: boolean, fileName: string) => {
+      await runProgram(source, opt, {
+        clear: false,
+        maxSteps: settings.maxSteps,
+        fileName,
+      });
+    },
+    [runProgram, settings.maxSteps]
+  );
+
   const handleAnalyze = useCallback(async () => {
     if (!activeFile) return;
     if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
@@ -140,84 +172,80 @@ function IdeWorkspace() {
     setIsToolWindowVisible(true);
   }, [activeFile, optimize, runAnalysis, setActiveTab]);
 
-  // Select example
-  const handleSelectExample = (exampleCode: string, exampleTitle?: string) => {
-    createFile(
-      exampleTitle ? `${exampleTitle.toLowerCase().replace(/[^a-z0-9]/g, '_')}.ml` : undefined,
-      exampleCode
-    );
-    runAnalysis(exampleCode, optimize);
-    showToast('Exemplo carregado em nova aba!', 'info');
-  };
+  const handleSelectExample = useCallback(
+    (exampleCode: string, exampleTitle?: string) => {
+      createFile(
+        exampleTitle
+          ? `${exampleTitle.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '')}.ml`
+          : undefined,
+        exampleCode
+      );
+      void runAnalysis(exampleCode, optimize);
+      showToast('Exemplo carregado em nova aba.', 'info');
+    },
+    [createFile, optimize, runAnalysis, showToast]
+  );
 
-  // Open local file
-  const handleOpenFile = () => {
+  const handleOpenFile = useCallback(() => {
     openLocalFile((content, filename) => {
       createFile(filename || 'arquivo.ml', content);
-      runAnalysis(content, optimize);
-      showToast(`Arquivo "${filename || 'arquivo.ml'}" aberto com sucesso!`, 'success');
+      void runAnalysis(content, optimize);
+      showToast(`Arquivo "${filename || 'arquivo.ml'}" aberto.`, 'success');
     });
-  };
+  }, [createFile, optimize, runAnalysis, showToast]);
 
-  // Download file
-  const handleDownloadFile = () => {
+  const handleDownloadFile = useCallback(() => {
     if (!activeFile) return;
     downloadFile(activeFile.name, activeFile.content);
-    showToast(`Arquivo "${activeFile.name}" baixado!`, 'success');
-  };
+    showToast(`Arquivo "${activeFile.name}" baixado.`, 'success');
+  }, [activeFile, showToast]);
 
-  // Share file via URL
-  const handleShare = () => {
+  const handleShare = useCallback(() => {
     if (!activeFile) return;
     const url = generateShareUrl(activeFile.content);
     navigator.clipboard
       .writeText(url)
       .then(() => {
-        showToast('Link de compartilhamento copiado para a área de transferência!', 'success');
+        showToast('Link de compartilhamento copiado.', 'success');
       })
       .catch(() => {
-        showToast('Erro ao copiar link para o clipboard.', 'error');
+        showToast('Erro ao copiar link de compartilhamento.', 'error');
       });
-  };
+  }, [activeFile, showToast]);
 
-  // Copy code to clipboard
-  const handleCopyCode = () => {
+  const handleCopyCode = useCallback(() => {
     if (!activeFile) return;
     navigator.clipboard
       .writeText(activeFile.content)
       .then(() => {
-        showToast('Código copiado para a área de transferência!', 'success');
+        showToast('Código copiado para a área de transferência.', 'success');
       })
       .catch(() => {
         showToast('Erro ao copiar código.', 'error');
       });
-  };
+  }, [activeFile, showToast]);
 
-  // Save shortcut (Ctrl+S)
-  const handleSave = () => {
-    showToast('Todas as alterações foram salvas automaticamente!', 'info');
-  };
+  const handleSave = useCallback(() => {
+    showToast('Alterações salvas automaticamente no navegador.', 'info');
+  }, [showToast]);
 
-  // Format code (Shift+Alt+F)
   const handleFormatCode = useCallback(() => {
     if (!activeFile) return;
     const formatted = formatMiniLangCode(activeFile.content);
     if (formatted !== activeFile.content) {
       updateContent(formatted);
-      runAnalysis(formatted, optimize);
-      showToast('Código formatado com sucesso! (2 espaços)', 'success');
+      void runAnalysis(formatted, optimize);
+      showToast('Código formatado com sucesso.', 'success');
     } else {
-      showToast('O código já está perfeitamente formatado.', 'info');
+      showToast('O código já está formatado.', 'info');
     }
   }, [activeFile, updateContent, runAnalysis, optimize, showToast]);
 
-  // Select error in editor
-  const handleSelectError = (line: number, column?: number) => {
+  const handleSelectError = useCallback((line: number, column?: number) => {
     editorRef.current?.goToLine(line, column);
-  };
+  }, []);
 
-  // Alternador de Posição do Painel (Abaixo vs Direita)
-  const handleTogglePanelPosition = () => {
+  const handleTogglePanelPosition = useCallback(() => {
     const next = panelPosition === 'bottom' ? 'right' : 'bottom';
     setPanelPosition(next);
     try {
@@ -227,22 +255,19 @@ function IdeWorkspace() {
     }
     showToast(
       next === 'bottom'
-        ? 'Painel reposicionado na parte inferior (abaixo do editor)'
-        : 'Painel reposicionado na lateral direita',
+        ? 'Painel movido para a parte inferior.'
+        : 'Painel movido para a lateral direita.',
       'info'
     );
-  };
+  }, [panelPosition, showToast]);
 
-  // Atalhos de teclado globais estilo IntelliJ IDEA
+  // Atalhos globais de teclado
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
-      // Alt+1: Alternar painel de Projeto
       if (e.altKey && e.key === '1') {
         e.preventDefault();
         setSidebarOpen((prev) => !prev);
-      }
-      // Alt+4: Alternar Terminal / Console
-      else if (e.altKey && e.key === '4') {
+      } else if (e.altKey && e.key === '4') {
         e.preventDefault();
         if (activeTab === 'console' && isToolWindowVisible) {
           setIsToolWindowVisible(false);
@@ -250,9 +275,7 @@ function IdeWorkspace() {
           setActiveTab('console');
           setIsToolWindowVisible(true);
         }
-      }
-      // Alt+6: Alternar Problemas
-      else if (e.altKey && e.key === '6') {
+      } else if (e.altKey && e.key === '6') {
         e.preventDefault();
         if (activeTab === 'problems' && isToolWindowVisible) {
           setIsToolWindowVisible(false);
@@ -260,31 +283,25 @@ function IdeWorkspace() {
           setActiveTab('problems');
           setIsToolWindowVisible(true);
         }
-      }
-      // Paleta de Comandos: Ctrl+Shift+P ou Ctrl+K
-      else if (
-        (e.ctrlKey && e.shiftKey && (e.key === 'P' || e.key === 'p')) ||
-        (e.ctrlKey && (e.key === 'k' || e.key === 'K'))
+      } else if (
+        (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'p') ||
+        (e.ctrlKey && e.key.toLowerCase() === 'k')
       ) {
         e.preventDefault();
         setIsPaletteOpen((prev) => !prev);
-      }
-      // Configurações: Ctrl+,
-      else if (e.ctrlKey && e.key === ',') {
+      } else if (e.ctrlKey && e.key === ',') {
         e.preventDefault();
         setIsSettingsOpen(!isSettingsOpen);
-      }
-      // Formatar Código: Shift+Alt+F
-      else if (e.shiftKey && e.altKey && (e.key === 'F' || e.key === 'f')) {
+      } else if (e.shiftKey && e.altKey && e.key.toLowerCase() === 'f') {
         e.preventDefault();
         handleFormatCode();
       } else if (e.key === 'F9' || (e.ctrlKey && e.key === 'Enter')) {
         e.preventDefault();
         handleRun();
-      } else if (e.ctrlKey && (e.key === 's' || e.key === 'S')) {
+      } else if (e.ctrlKey && e.key.toLowerCase() === 's') {
         e.preventDefault();
         handleSave();
-      } else if (e.ctrlKey && (e.key === 'l' || e.key === 'L')) {
+      } else if (e.ctrlKey && e.key.toLowerCase() === 'l') {
         e.preventDefault();
         clearConsole();
       } else if (e.key === 'Escape') {
@@ -300,67 +317,189 @@ function IdeWorkspace() {
 
     window.addEventListener('keydown', handleGlobalKeyDown);
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
-  }, [handleRun, handleFormatCode, status, abortExecution, isPaletteOpen, isSettingsOpen, setIsSettingsOpen, clearConsole, activeTab, isToolWindowVisible, setActiveTab]);
+  }, [
+    handleRun,
+    handleFormatCode,
+    handleSave,
+    status,
+    abortExecution,
+    isPaletteOpen,
+    isSettingsOpen,
+    setIsSettingsOpen,
+    clearConsole,
+    activeTab,
+    isToolWindowVisible,
+    setActiveTab,
+  ]);
 
   const activeContent = activeFile?.content ?? '';
   const lineCount = activeContent.split('\n').length;
-  const charCount = activeContent.length;
+
+  const sidebarElement = sidebarOpen && (
+    <ProjectSidebar
+      files={files}
+      activeFileId={activeFileId}
+      onSelectFile={selectFile}
+      onCreateFile={() => createFile()}
+      onCloseFile={closeFile}
+      onRenameFile={renameFile}
+      onSelectExample={handleSelectExample}
+      onOpenFile={handleOpenFile}
+      onCollapse={() => setSidebarOpen(false)}
+    />
+  );
+
+  const editorIsland = (
+    <div className="flex flex-col h-full w-full overflow-hidden bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-[var(--ui-radius-lg)] transition-colors">
+      <EditorTabs
+        files={files}
+        activeFileId={activeFileId}
+        onSelectFile={selectFile}
+        onCreateFile={() => createFile()}
+        onCloseFile={closeFile}
+        onRenameFile={renameFile}
+        onCopyCode={handleCopyCode}
+        onFormatCode={handleFormatCode}
+        onDownloadFile={handleDownloadFile}
+        cursorLine={cursorPos.line}
+        onNavigateToLine={(line) => editorRef.current?.goToLine(line)}
+      />
+
+      <div className="flex-1 h-full overflow-hidden bg-[var(--bg-surface)] flex flex-col">
+        <CodeEditor
+          ref={editorRef}
+          value={activeContent}
+          onChange={handleCodeChange}
+          errors={errors}
+          symbols={analysisData?.symbol_table ?? []}
+          onRunShortcut={handleRun}
+          onFormatShortcut={handleFormatCode}
+          theme={theme}
+          onCursorChange={(line, col) => setCursorPos({ line, col })}
+        />
+      </div>
+    </div>
+  );
+
+  const toolsIsland = (
+    <div className="flex flex-col h-full w-full overflow-hidden bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-[var(--ui-radius-lg)] transition-colors">
+      <ToolWindowHeader
+        activeTab={activeTab}
+        onSelectTab={(tab) => {
+          if (tab === activeTab && isToolWindowVisible) {
+            setIsToolWindowVisible(false);
+          } else {
+            setActiveTab(tab);
+          }
+        }}
+        errorsCount={errors.length}
+        tokensCount={analysisData?.tokens?.length}
+        panelPosition={panelPosition}
+        onTogglePanelPosition={handleTogglePanelPosition}
+        isMaximized={isToolWindowMaximized}
+        onToggleMaximize={() => setIsToolWindowMaximized((prev) => !prev)}
+        onClose={() => setIsToolWindowVisible(false)}
+      />
+
+      <div className="flex-1 overflow-hidden bg-[var(--bg-surface)]">
+        {activeTab === 'console' && (
+          <Terminal
+            messages={messages}
+            status={status}
+            waitingInput={waitingInput}
+            onSendStdin={sendStdin}
+            onClear={clearConsole}
+            onAbort={abortExecution}
+            onAppendMessage={appendMessage}
+            files={files}
+            activeFile={activeFile}
+            selectFile={selectFile}
+            createFile={createFile}
+            upsertFile={upsertFile}
+            closeFile={closeFile}
+            renameFile={renameFile}
+            updateFileContentById={updateFileContentById}
+            optimize={optimize}
+            onRunFile={handleTerminalRunFile}
+            onAnalyzeSource={runAnalysis}
+            onRunHttp={(src, opt) => runProgramHttp(src, [], opt, undefined, settings.maxSteps)}
+            onCheckHealth={checkHealth}
+            onFormatSource={formatMiniLangCode}
+            onShare={handleShare}
+            onGoToLine={handleSelectError}
+            onSwitchTab={(tab) => {
+              setActiveTab(tab);
+              setIsToolWindowVisible(true);
+            }}
+          />
+        )}
+
+        {activeTab === 'problems' && (
+          <DiagnosticsPanel errors={errors} onSelectError={handleSelectError} />
+        )}
+
+        {activeTab === 'ast' && (
+          <AstPanel
+            rawAst={analysisData?.ast_raw ?? null}
+            optimizedAst={analysisData?.ast_optimized ?? null}
+            optimizeEnabled={optimize}
+            isLoading={isAnalyzing}
+            onSelectLine={(line) => editorRef.current?.goToLine(line)}
+          />
+        )}
+
+        {activeTab === 'cfg' && (
+          <CfgPanel
+            sourceCode={activeContent}
+            astRaw={analysisData?.ast_optimized ?? analysisData?.ast_raw ?? null}
+            isLoading={isAnalyzing}
+            activeLine={cursorPos.line}
+            onNodeClick={(startLine) => editorRef.current?.goToLine(startLine)}
+          />
+        )}
+
+        {activeTab === 'symbols' && (
+          <SymbolTablePanel
+            symbols={analysisData?.symbol_table ?? []}
+            isLoading={isAnalyzing}
+          />
+        )}
+
+        {activeTab === 'tokens' && (
+          <TokensPanel
+            tokens={analysisData?.tokens ?? []}
+            isLoading={isAnalyzing}
+          />
+        )}
+      </div>
+    </div>
+  );
 
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden bg-[var(--bg-app)] text-[var(--text-main)] transition-colors">
-      {/* Topbar estilo JetBrains New UI */}
+      {/* Barra Superior Limpa */}
       <Topbar
-        activeFileName={activeFile?.name || 'main.ml'}
         status={status}
+        sidebarOpen={sidebarOpen}
+        onToggleSidebar={() => setSidebarOpen((prev) => !prev)}
         onRun={handleRun}
         onAbort={abortExecution}
         onAnalyze={handleAnalyze}
-        onSelectExample={(code, title) => handleSelectExample(code, title)}
-        onOpenFile={handleOpenFile}
-        onDownloadFile={handleDownloadFile}
+        onSelectExample={handleSelectExample}
         onShare={handleShare}
         onOpenCommandPalette={() => setIsPaletteOpen(true)}
         health={health}
         isAnalyzing={isAnalyzing}
       />
 
-      {/* Espaço de Trabalho Principal: ActivityBar + ProjectSidebar + Área do Editor & Ferramentas */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Barra de Atividades Vertical Esquerda (IntelliJ IDEA) */}
-        <ActivityBar
-          sidebarOpen={sidebarOpen}
-          onToggleSidebar={() => setSidebarOpen((prev) => !prev)}
-          activeTab={activeTab}
-          onSelectTab={(tab) => {
-            setActiveTab(tab);
-            setIsToolWindowVisible(true);
-          }}
-          isToolWindowVisible={isToolWindowVisible}
-          onToggleToolWindow={() => setIsToolWindowVisible((prev) => !prev)}
-          onOpenCommandPalette={() => setIsPaletteOpen(true)}
-          isRunning={status === 'RUNNING' || status === 'WAITING_INPUT' || status === 'CONNECTING'}
-          onRun={handleRun}
-          onAbort={abortExecution}
-          errorsCount={errors.length}
-        />
+      {/* Área Principal em Ilhas */}
+      <div
+        className="flex-1 flex overflow-hidden px-2 pb-1.5"
+        style={{ gap: 'var(--ui-gap)' }}
+      >
+        {settings.sidebarPosition === 'left' && sidebarElement}
 
-        {/* Painel Lateral de Projeto (IntelliJ IDEA) */}
-        {sidebarOpen && (
-          <ProjectSidebar
-            files={files}
-            activeFileId={activeFileId}
-            onSelectFile={selectFile}
-            onCreateFile={() => createFile()}
-            onCloseFile={closeFile}
-            onRenameFile={renameFile}
-            onSelectExample={handleSelectExample}
-            onOpenFile={handleOpenFile}
-            onCollapse={() => setSidebarOpen(false)}
-          />
-        )}
-
-        {/* Área Central: Splitter Redimensionável (Abaixo ou Direita) */}
-        <div className="flex-1 flex flex-col h-full overflow-hidden bg-[var(--bg-surface)]">
+        <div className="flex-1 flex flex-col h-full overflow-hidden min-w-0">
           {isToolWindowVisible ? (
             <Group
               key={panelPosition}
@@ -368,178 +507,44 @@ function IdeWorkspace() {
               id={`arceus-ide-split-${panelPosition}`}
               defaultLayout={
                 isToolWindowMaximized
-                  ? { 'editor-pane': 15, 'tabs-pane': 85 }
+                  ? { 'editor-pane': 20, 'tabs-pane': 80 }
                   : panelPosition === 'bottom'
-                  ? { 'editor-pane': 60, 'tabs-pane': 40 }
+                  ? { 'editor-pane': 62, 'tabs-pane': 38 }
                   : { 'editor-pane': 55, 'tabs-pane': 45 }
               }
               className="flex-1 overflow-hidden"
             >
-              {/* Painel do Editor MiniLang (Fundo cinza preenchendo até o limite) */}
-              <Panel
-                id="editor-pane"
-                minSize={15}
-                className="flex flex-col h-full overflow-hidden bg-[var(--bg-surface)]"
-              >
-                <EditorTabs
-                  files={files}
-                  activeFileId={activeFileId}
-                  onSelectFile={selectFile}
-                  onCreateFile={() => createFile()}
-                  onCloseFile={closeFile}
-                  onRenameFile={renameFile}
-                  onCopyCode={handleCopyCode}
-                  onFormatCode={handleFormatCode}
-                  showMinimap={showMinimap}
-                  onToggleMinimap={() => setShowMinimap((prev) => !prev)}
-                  sidebarOpen={sidebarOpen}
-                  onToggleSidebar={() => setSidebarOpen((prev) => !prev)}
-                  panelPosition={panelPosition}
-                  onTogglePanelPosition={handleTogglePanelPosition}
-                  cursorLine={cursorPos.line}
-                  onNavigateToLine={(line) => editorRef.current?.goToLine(line)}
-                />
-
-                <div className="flex-1 h-full overflow-hidden bg-[var(--bg-surface)] flex flex-col">
-                  <CodeEditor
-                    ref={editorRef}
-                    value={activeContent}
-                    onChange={handleCodeChange}
-                    errors={errors}
-                    symbols={analysisData?.symbol_table ?? []}
-                    onRunShortcut={handleRun}
-                    onFormatShortcut={handleFormatCode}
-                    theme={theme}
-                    onCursorChange={(line, col) => setCursorPos({ line, col })}
-                    showMinimap={showMinimap}
-                  />
-                </div>
+              <Panel id="editor-pane" minSize={18} className="flex flex-col h-full overflow-hidden">
+                {editorIsland}
               </Panel>
 
-              {/* Barra de Redimensionamento Horizontal ou Vertical estilo JetBrains */}
               <Separator
                 className={
                   panelPosition === 'bottom'
-                    ? 'h-1 w-full bg-[#1e1f22] hover:bg-[#3574f0] transition-colors cursor-row-resize active:bg-[#3574f0] shrink-0'
-                    : 'w-1 h-full bg-[#1e1f22] hover:bg-[#3574f0] transition-colors cursor-col-resize active:bg-[#3574f0] shrink-0'
+                    ? 'h-1.5 w-full flex items-center justify-center cursor-row-resize group shrink-0'
+                    : 'w-1.5 h-full flex items-center justify-center cursor-col-resize group shrink-0'
                 }
-              />
-
-              {/* Painel de Ferramentas (Console, Problemas, AST, CFG, Símbolos, Tokens) */}
-              <Panel
-                id="tabs-pane"
-                minSize={15}
-                className="flex flex-col h-full overflow-hidden bg-[var(--bg-panel)]"
               >
-                <ToolWindowHeader
-                  activeTab={activeTab}
-                  onSelectTab={(tab) => {
-                    if (tab === activeTab && isToolWindowVisible) {
-                      setIsToolWindowVisible(false);
-                    } else {
-                      setActiveTab(tab);
-                    }
-                  }}
-                  errorsCount={errors.length}
-                  tokensCount={analysisData?.tokens?.length}
-                  panelPosition={panelPosition}
-                  onTogglePanelPosition={handleTogglePanelPosition}
-                  isMaximized={isToolWindowMaximized}
-                  onToggleMaximize={() => setIsToolWindowMaximized((prev) => !prev)}
-                  onClose={() => setIsToolWindowVisible(false)}
+                <div
+                  className={
+                    panelPosition === 'bottom'
+                      ? 'w-10 h-0.5 rounded-full bg-[var(--border-color)] group-hover:bg-[var(--accent-primary)] transition-colors'
+                      : 'h-10 w-0.5 rounded-full bg-[var(--border-color)] group-hover:bg-[var(--accent-primary)] transition-colors'
+                  }
                 />
+              </Separator>
 
-                <div className="flex-1 overflow-hidden bg-[var(--bg-panel)]">
-                  {activeTab === 'console' && (
-                    <Terminal
-                      messages={messages}
-                      status={status}
-                      waitingInput={waitingInput}
-                      exitCode={exitCode}
-                      durationMs={durationMs}
-                      onSendStdin={sendStdin}
-                      onClear={clearConsole}
-                      onAbort={abortExecution}
-                      onRerun={handleRun}
-                    />
-                  )}
-
-                  {activeTab === 'problems' && (
-                    <DiagnosticsPanel
-                      errors={errors}
-                      onSelectError={handleSelectError}
-                    />
-                  )}
-
-                  {activeTab === 'ast' && (
-                    <AstPanel
-                      rawAst={analysisData?.ast_raw ?? null}
-                      optimizedAst={analysisData?.ast_optimized ?? null}
-                      optimizeEnabled={optimize}
-                      isLoading={isAnalyzing}
-                      onSelectLine={(line) => editorRef.current?.goToLine(line)}
-                    />
-                  )}
-
-                  {activeTab === 'cfg' && (
-                    <CfgPanel
-                      sourceCode={activeContent}
-                      astRaw={analysisData?.ast_optimized ?? analysisData?.ast_raw ?? null}
-                      isLoading={isAnalyzing}
-                      activeLine={cursorPos.line}
-                      onNodeClick={(startLine) => editorRef.current?.goToLine(startLine)}
-                    />
-                  )}
-
-                  {activeTab === 'symbols' && (
-                    <SymbolTablePanel
-                      symbols={analysisData?.symbol_table ?? []}
-                      isLoading={isAnalyzing}
-                    />
-                  )}
-
-                  {activeTab === 'tokens' && (
-                    <TokensPanel
-                      tokens={analysisData?.tokens ?? []}
-                      isLoading={isAnalyzing}
-                    />
-                  )}
-                </div>
+              <Panel id="tabs-pane" minSize={18} className="flex flex-col h-full overflow-hidden">
+                {toolsIsland}
               </Panel>
             </Group>
           ) : (
-            /* Tool Window Recolhida: Editor ocupa até o limite inferior */
-            <div className="flex-1 flex flex-col h-full overflow-hidden bg-[var(--bg-surface)]">
-              <EditorTabs
-                files={files}
-                activeFileId={activeFileId}
-                onSelectFile={selectFile}
-                onCreateFile={() => createFile()}
-                onCloseFile={closeFile}
-                onRenameFile={renameFile}
-                onCopyCode={handleCopyCode}
-                showMinimap={showMinimap}
-                onToggleMinimap={() => setShowMinimap((prev) => !prev)}
-                sidebarOpen={sidebarOpen}
-                onToggleSidebar={() => setSidebarOpen((prev) => !prev)}
-                panelPosition={panelPosition}
-                onTogglePanelPosition={handleTogglePanelPosition}
-              />
+            <div
+              className="flex-1 flex flex-col h-full overflow-hidden"
+              style={{ gap: 'var(--ui-gap)' }}
+            >
+              <div className="flex-1 overflow-hidden">{editorIsland}</div>
 
-              <div className="flex-1 h-full overflow-hidden bg-[var(--bg-surface)] flex flex-col">
-                <CodeEditor
-                  ref={editorRef}
-                  value={activeContent}
-                  onChange={handleCodeChange}
-                  errors={errors}
-                  onRunShortcut={handleRun}
-                  theme={theme}
-                  onCursorChange={(line, col) => setCursorPos({ line, col })}
-                  showMinimap={showMinimap}
-                />
-              </div>
-
-              {/* Barra de Ferramentas Inferior recolhida estilo IntelliJ IDEA */}
               <BottomToolStripe
                 activeTab={activeTab}
                 onOpenTab={(tab) => {
@@ -551,22 +556,31 @@ function IdeWorkspace() {
             </div>
           )}
         </div>
+
+        {settings.sidebarPosition === 'right' && sidebarElement}
       </div>
 
-      {/* Barra de Status Inferior */}
+      {/* Barra de Status Discreta (opcional nas Configurações) */}
       <StatusBar
         cursorLine={cursorPos.line}
         cursorCol={cursorPos.col}
-        charCount={charCount}
         lineCount={lineCount}
-        health={health}
         errorsCount={errors.length}
+        isPanelOpen={isToolWindowVisible}
+        onTogglePanel={() => setIsToolWindowVisible((prev) => !prev)}
+        onOpenProblems={() => {
+          setActiveTab('problems');
+          setIsToolWindowVisible(true);
+        }}
       />
 
       {/* Paleta de Comandos */}
       <CommandPalette
         isOpen={isPaletteOpen}
         onClose={() => setIsPaletteOpen(false)}
+        files={files}
+        activeFileId={activeFileId}
+        onSelectFile={selectFile}
         onRun={handleRun}
         onAbort={abortExecution}
         onAnalyze={handleAnalyze}
@@ -576,14 +590,17 @@ function IdeWorkspace() {
         onClearTerminal={clearConsole}
         onCreateFile={() => createFile()}
         onFormatCode={handleFormatCode}
-        onSelectExample={(code) => handleSelectExample(code)}
+        onToggleSidebar={() => setSidebarOpen((prev) => !prev)}
+        onToggleOptimize={() => handleToggleOptimize(!optimize)}
+        optimize={optimize}
+        onSelectExample={handleSelectExample}
         onSelectTab={(tab) => {
           setActiveTab(tab);
           setIsToolWindowVisible(true);
         }}
       />
 
-      {/* Gaveta Lateral de Configurações */}
+      {/* Configurações */}
       <SettingsDrawer
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
