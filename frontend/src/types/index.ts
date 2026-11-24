@@ -102,14 +102,50 @@ export interface ThemeConfig {
   previewColors: [string, string, string, string]; // [fundo, superfície, primária, destaque]
 }
 
-export type EditorFontSize = '12px' | '14px' | '16px' | '18px';
-export type EditorFontFamily = 'JetBrains Mono' | 'Fira Code';
+export type EditorFontSize = '12px' | '13px' | '14px' | '16px' | '18px' | '20px';
+export type EditorFontFamily = 'JetBrains Mono' | 'Fira Code' | 'monospace';
+export type EditorLineHeight = '1.4' | '1.6' | '1.8';
+export type TabSize = 2 | 4;
+
+export type AccentOverride = 'theme' | 'blue' | 'amber' | 'cyan' | 'emerald' | 'violet' | 'rose';
+export type UiDensity = 'compact' | 'comfortable' | 'spacious';
+export type BorderRadiusStyle = 'sharp' | 'rounded' | 'pill';
+export type SidebarPosition = 'left' | 'right';
+export type TerminalFontSize = '11px' | '12px' | '13px' | '14px';
+export type TerminalCursorStyle = 'block' | 'underline' | 'bar';
 
 export interface EditorSettings {
+  // Aparência & Layout
+  accentOverride: AccentOverride;
+  uiDensity: UiDensity;
+  borderRadius: BorderRadiusStyle;
+  sidebarPosition: SidebarPosition;
+  showBreadcrumbs: boolean;
+  showStatusBar: boolean;
+  smoothAnimations: boolean;
+
+  // Editor de Código
   fontSize: EditorFontSize;
   fontFamily: EditorFontFamily;
+  lineHeight: EditorLineHeight;
+  tabSize: TabSize;
   enableLigatures: boolean;
+  showLineNumbers: boolean;
+  highlightActiveLine: boolean;
+  closeBrackets: boolean;
   editorLineWrapping: boolean;
   showMinimap: boolean;
+
+  // Terminal & Console
+  terminalFontSize: TerminalFontSize;
+  terminalCursorStyle: TerminalCursorStyle;
+  terminalTimestamps: boolean;
+  terminalWrap: boolean;
+  clearBeforeRun: boolean;
+
+  // Compilador & Análise
   optimize: boolean;
+  autoAnalyze: boolean;
+  analyzeDelay: 250 | 400 | 800;
+  maxSteps: 50000 | 100000 | 500000;
 }
