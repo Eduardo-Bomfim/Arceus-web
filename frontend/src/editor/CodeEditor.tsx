@@ -2,6 +2,9 @@ import { useImperativeHandle, forwardRef, useMemo, useRef } from 'react';
 import CodeMirror from '@uiw/react-codemirror';
 import type { ReactCodeMirrorRef } from '@uiw/react-codemirror';
 import { keymap, EditorView } from '@codemirror/view';
+import { EditorState } from '@codemirror/state';
+import { indentUnit } from '@codemirror/language';
+import { indentWithTab } from '@codemirror/commands';
 import { autocompletion } from '@codemirror/autocomplete';
 import { showMinimap } from '@replit/codemirror-minimap';
 import { miniLangLanguage } from './minilang-syntax';
@@ -40,7 +43,7 @@ export const CodeEditor = forwardRef<CodeEditorRef, CodeEditorProps>(
       readOnly = false,
       onRunShortcut,
       onFormatShortcut,
-      theme = 'arceus',
+      theme = 'jetbrains',
       onCursorChange,
       showMinimap: showMinimapProp,
       lineWrapping,
@@ -48,7 +51,7 @@ export const CodeEditor = forwardRef<CodeEditorRef, CodeEditorProps>(
     ref
   ) => {
     const cmRef = useRef<ReactCodeMirrorRef>(null);
-    const { settings } = useTheme();
+    const { settings, themeConfig } = useTheme();
 
     useImperativeHandle(ref, () => ({
       goToLine(line: number, column = 1) {
@@ -71,21 +74,44 @@ export const CodeEditor = forwardRef<CodeEditorRef, CodeEditorProps>(
       },
     }));
 
+    const fontStack = useMemo(() => {
+      if (settings.fontFamily === 'monospace') {
+        return "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace";
+      }
+      return `'${settings.fontFamily}', Consolas, monospace`;
+    }, [settings.fontFamily]);
+
     const typographyExtension = useMemo(() => {
-      return EditorView.theme({
+      const rules: Record<string, Record<string, string>> = {
         '&': {
           fontSize: settings.fontSize,
         },
         '.cm-scroller': {
-          fontFamily: `'${settings.fontFamily}', monospace !important`,
+          fontFamily: `${fontStack} !important`,
+          lineHeight: `${settings.lineHeight} !important`,
           fontFeatureSettings: settings.enableLigatures ? '"calt" 1, "liga" 1' : '"calt" 0, "liga" 0',
           fontVariantLigatures: settings.enableLigatures ? 'normal' : 'none',
         },
         '.cm-content': {
-          fontFamily: `'${settings.fontFamily}', monospace !important`,
+          fontFamily: `${fontStack} !important`,
         },
-      });
-    }, [settings.fontSize, settings.fontFamily, settings.enableLigatures]);
+      };
+
+      if (settings.accentOverride !== 'theme') {
+        rules['.cm-cursor'] = {
+          borderLeftColor: `${themeConfig.primaryColor} !important`,
+        };
+      }
+
+      return EditorView.theme(rules);
+    }, [
+      settings.fontSize,
+      settings.lineHeight,
+      settings.enableLigatures,
+      settings.accentOverride,
+      fontStack,
+      themeConfig.primaryColor,
+    ]);
 
     const extensions = useMemo(() => {
       const ext = [
@@ -93,6 +119,8 @@ export const CodeEditor = forwardRef<CodeEditorRef, CodeEditorProps>(
         ...getEditorThemeExtension(theme),
         createErrorLinter(errors),
         typographyExtension,
+        EditorState.tabSize.of(settings.tabSize),
+        indentUnit.of(' '.repeat(settings.tabSize)),
         autocompletion({
           override: [createMiniLangCompletionSource(symbols)],
           defaultKeymap: true,
@@ -115,7 +143,7 @@ export const CodeEditor = forwardRef<CodeEditorRef, CodeEditorProps>(
         );
       }
 
-      const keymaps = [];
+      const keymaps = [indentWithTab];
 
       if (onRunShortcut) {
         keymaps.push(
@@ -146,9 +174,7 @@ export const CodeEditor = forwardRef<CodeEditorRef, CodeEditorProps>(
         });
       }
 
-      if (keymaps.length > 0) {
-        ext.push(keymap.of(keymaps));
-      }
+      ext.push(keymap.of(keymaps));
 
       return ext;
     }, [
@@ -161,6 +187,7 @@ export const CodeEditor = forwardRef<CodeEditorRef, CodeEditorProps>(
       lineWrapping,
       settings.showMinimap,
       settings.editorLineWrapping,
+      settings.tabSize,
       typographyExtension,
     ]);
 
@@ -171,7 +198,7 @@ export const CodeEditor = forwardRef<CodeEditorRef, CodeEditorProps>(
           value={value}
           height="100%"
           className="h-full w-full flex-1"
-          theme="dark"
+          theme={themeConfig.isDark ? 'dark' : 'light'}
           extensions={extensions}
           onChange={onChange}
           readOnly={readOnly}
@@ -184,24 +211,24 @@ export const CodeEditor = forwardRef<CodeEditorRef, CodeEditorProps>(
             }
           }}
           basicSetup={{
-            lineNumbers: true,
-            highlightActiveLineGutter: true,
+            lineNumbers: settings.showLineNumbers,
+            highlightActiveLineGutter: settings.highlightActiveLine,
             highlightSpecialChars: true,
             history: true,
-            foldGutter: true,
+            foldGutter: settings.showLineNumbers,
             drawSelection: true,
             dropCursor: true,
             allowMultipleSelections: false,
             indentOnInput: true,
             syntaxHighlighting: true,
             bracketMatching: true,
-            closeBrackets: true,
+            closeBrackets: settings.closeBrackets,
             autocompletion: false,
             rectangularSelection: true,
-            crosshairCursor: true,
-            highlightActiveLine: true,
+            crosshairCursor: false,
+            highlightActiveLine: settings.highlightActiveLine,
             highlightSelectionMatches: true,
-            closeBracketsKeymap: true,
+            closeBracketsKeymap: settings.closeBrackets,
             defaultKeymap: true,
             searchKeymap: true,
             historyKeymap: true,

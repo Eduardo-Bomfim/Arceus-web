@@ -58,12 +58,13 @@ export async function runProgramHttp(
   source: string,
   inputs: string[] = [],
   optimize = false,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  maxSteps = 100000
 ): Promise<RunResponse> {
   const res = await fetch(`${API_BASE}/api/run`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ source, inputs, optimize }),
+    body: JSON.stringify({ source, inputs, optimize, max_steps: maxSteps }),
     signal,
   });
 

@@ -13,11 +13,36 @@ import {
   runProgramHttp,
 } from '../api/client';
 
+export type TerminalMessageType =
+  | 'command'
+  | 'stdout'
+  | 'stdin'
+  | 'info'
+  | 'system'
+  | 'success'
+  | 'warn'
+  | 'error'
+  | 'code'
+  | 'muted';
+
 export interface TerminalMessage {
   id: string;
-  type: 'stdout' | 'stdin' | 'system' | 'error';
+  type: TerminalMessageType;
   text: string;
   time?: string;
+  meta?: {
+    prompt?: string;
+    file?: string;
+    line?: number;
+    column?: number;
+  };
+}
+
+export interface RunProgramOptions {
+  clear?: boolean;
+  commandLabel?: string;
+  maxSteps?: number;
+  fileName?: string;
 }
 
 export function useArceusRunner() {
@@ -38,13 +63,12 @@ export function useArceusRunner() {
   const wsRef = useRef<WebSocket | null>(null);
   const healthPollRef = useRef<number | null>(null);
   const statusRef = useRef<RunnerStatus>(status);
-  statusRef.current = status;
-
-  // Race condition prevention na análise
   const analysisAbortRef = useRef<AbortController | null>(null);
-
-  // Execution timeout (30s)
   const executionTimeoutRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    statusRef.current = status;
+  }, [status]);
 
   const clearExecutionTimeout = () => {
     if (executionTimeoutRef.current) {
@@ -53,25 +77,33 @@ export function useArceusRunner() {
     }
   };
 
-  // Helper para adicionar mensagens no terminal com timestamp
   const appendMessage = useCallback(
-    (type: 'stdout' | 'stdin' | 'system' | 'error', text: string) => {
-      const id = Math.random().toString(36).substring(2, 9);
-      const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-      setMessages((prev) => [...prev, { id, type, text, time }]);
+    (
+      type: TerminalMessageType,
+      text: string,
+      meta?: TerminalMessage['meta']
+    ) => {
+      const id = `${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+      const time = new Date().toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      });
+      setMessages((prev) => [...prev, { id, type, text, time, meta }]);
     },
     []
   );
 
-  // Monitoramento de saúde e Cold Start do Render (#20: 4s em sleeping, 30s após online)
+  // Monitoramento de saúde da API e Cold Start
   const probeHealth = useCallback(async () => {
     const res = await checkHealth();
     if (res.ok) {
       setHealth((prev) => {
         if (prev.state !== 'online') {
-          // Ajusta polling para 30s após ficar online
           if (healthPollRef.current) clearInterval(healthPollRef.current);
-          healthPollRef.current = window.setInterval(probeHealth, 30000);
+          healthPollRef.current = window.setInterval(() => {
+            void probeHealth();
+          }, 30000);
         }
         return {
           state: 'online',
@@ -89,8 +121,10 @@ export function useArceusRunner() {
   }, []);
 
   useEffect(() => {
-    probeHealth();
-    healthPollRef.current = window.setInterval(probeHealth, 4000);
+    void probeHealth();
+    healthPollRef.current = window.setInterval(() => {
+      void probeHealth();
+    }, 4000);
 
     return () => {
       if (healthPollRef.current) clearInterval(healthPollRef.current);
@@ -99,17 +133,15 @@ export function useArceusRunner() {
     };
   }, [probeHealth]);
 
-  // Limpeza de console
   const clearConsole = useCallback(() => {
     setMessages([]);
-    setErrors([]);
     setExitCode(null);
     setDurationMs(null);
     setWaitingInput(null);
     clearExecutionTimeout();
   }, []);
 
-  // Análise Estática (#19: com AbortController para prevenir race condition)
+  // Análise Estática com AbortController para evitar race condition
   const runAnalysis = useCallback(
     async (source: string, optimize = false) => {
       if (analysisAbortRef.current) {
@@ -126,7 +158,6 @@ export function useArceusRunner() {
         return res;
       } catch (err: unknown) {
         if (err instanceof DOMException && err.name === 'AbortError') {
-          // Requisição cancelada por nova digitação
           return null;
         }
         const errMsg = err instanceof Error ? err.message : String(err);
@@ -148,21 +179,35 @@ export function useArceusRunner() {
     []
   );
 
-  // Execução não-interativa (Fallback HTTP) (#18: useCallback estável sem stale closures)
   const executeHttpFallback = useCallback(
-    async (source: string, optimize = false) => {
+    async (source: string, optimize = false, maxSteps = 100000, fileName?: string) => {
       setStatus('RUNNING');
-      appendMessage('system', 'Conectando via fallback HTTP...');
+      appendMessage('system', 'Conectando via HTTP de contingência...');
 
       try {
-        const res = await runProgramHttp(source, [], optimize);
+        const res = await runProgramHttp(source, [], optimize, undefined, maxSteps);
         if (res.stdout) {
-          appendMessage('stdout', res.stdout);
+          appendMessage('stdout', res.stdout.replace(/\n$/, ''));
         }
-        setErrors(res.errors);
+        if (res.errors.length > 0) {
+          setErrors(res.errors);
+          res.errors.forEach((err) => {
+            appendMessage(
+              'error',
+              `[${err.phase}] Linha ${err.line}, Coluna ${err.column}: ${err.message}`,
+              { file: fileName, line: err.line, column: err.column }
+            );
+          });
+        }
         setExitCode(res.exit_code);
         setDurationMs(res.duration_ms);
         setStatus(res.success ? 'FINISHED' : 'ERROR');
+        appendMessage(
+          res.success ? 'success' : 'error',
+          res.success
+            ? `Finalizado com código 0 (${res.duration_ms} ms)`
+            : `Finalizado com código ${res.exit_code} (${res.duration_ms} ms)`
+        );
         clearExecutionTimeout();
       } catch (err: unknown) {
         const errMsg = err instanceof Error ? err.message : String(err);
@@ -182,13 +227,12 @@ export function useArceusRunner() {
     [appendMessage]
   );
 
-  // Envio de entrada para comando leia
   const sendStdin = useCallback(
     (value: string) => {
       if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
         return;
       }
-      appendMessage('stdin', `> ${value}\n`);
+      appendMessage('stdin', value);
       wsRef.current.send(JSON.stringify({ type: 'stdin', value }));
       setWaitingInput(null);
       setStatus('RUNNING');
@@ -196,7 +240,6 @@ export function useArceusRunner() {
     [appendMessage]
   );
 
-  // Interrupção de execução
   const abortExecution = useCallback(() => {
     clearExecutionTimeout();
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
@@ -206,41 +249,56 @@ export function useArceusRunner() {
     setStatus('FINISHED');
     setExitCode(1);
     setWaitingInput(null);
-    appendMessage('system', '[Execução interrompida pelo usuário]');
+    appendMessage('warn', '^C Execução interrompida pelo usuário.');
   }, [appendMessage]);
 
-  // Execução Interativa via WebSocket com reconnect exponencial (#16) e timeout 30s (#17)
   const runProgram = useCallback(
-    async (source: string, optimize = false) => {
-      clearConsole();
-      setStatus('CONNECTING');
-      appendMessage('system', 'Iniciando compilação e execução...');
+    async (source: string, optimize = false, options: RunProgramOptions = {}) => {
+      const { clear = false, commandLabel, maxSteps = 100000, fileName } = options;
 
-      // 1. Pré-validação estática rápida
+      if (clear) {
+        clearConsole();
+      }
+
+      if (commandLabel) {
+        appendMessage('command', commandLabel);
+      }
+
+      setStatus('CONNECTING');
+      setExitCode(null);
+      setDurationMs(null);
+      setWaitingInput(null);
+
+      // Pré-validação estática rápida
       const quickCheck = await runAnalysis(source, optimize);
       if (quickCheck && !quickCheck.success) {
         setStatus('FINISHED');
         setExitCode(1);
+        quickCheck.errors.forEach((err) => {
+          appendMessage(
+            'error',
+            `[${err.phase}] Linha ${err.line}, Coluna ${err.column}: ${err.message}`,
+            { file: fileName, line: err.line, column: err.column }
+          );
+        });
         appendMessage('error', 'Execução cancelada devido a erros de compilação.');
         return;
       }
 
-      // 2. Timeout global do cliente (#17: 30 segundos)
       clearExecutionTimeout();
       executionTimeoutRef.current = window.setTimeout(() => {
-        if (statusRef.current === 'RUNNING') {
+        if (statusRef.current === 'RUNNING' || statusRef.current === 'WAITING_INPUT') {
           abortExecution();
           appendMessage(
             'error',
-            '[Tempo Limite] Execução interrompida: excedeu 30 segundos sem resposta.'
+            '[Tempo Limite] Execução interrompida após 30 segundos sem resposta.'
           );
         }
       }, 30000);
 
-      // 3. Conexão WebSocket com Retry / Backoff Exponencial (#16)
       const wsUrl = getWsUrl();
       let retryCount = 0;
-      const MAX_RETRIES = 3;
+      const MAX_RETRIES = 2;
 
       const attemptConnect = () => {
         let socket: WebSocket;
@@ -248,7 +306,7 @@ export function useArceusRunner() {
           socket = new WebSocket(wsUrl);
           wsRef.current = socket;
         } catch {
-          executeHttpFallback(source, optimize);
+          void executeHttpFallback(source, optimize, maxSteps, fileName);
           return;
         }
 
@@ -257,17 +315,17 @@ export function useArceusRunner() {
             socket.close();
             if (retryCount < MAX_RETRIES) {
               retryCount++;
-              const delay = Math.pow(2, retryCount) * 400; // 800ms, 1600ms, 3200ms
+              const delay = Math.pow(2, retryCount) * 350;
               appendMessage(
                 'system',
-                `Reconectando WebSocket (tentativa ${retryCount}/${MAX_RETRIES} em ${delay}ms)...`
+                `Reconectando ao servidor (${retryCount}/${MAX_RETRIES})...`
               );
               setTimeout(attemptConnect, delay);
             } else {
-              executeHttpFallback(source, optimize);
+              void executeHttpFallback(source, optimize, maxSteps, fileName);
             }
           }
-        }, 3000);
+        }, 2500);
 
         socket.onopen = () => {
           clearTimeout(connectionTimeout);
@@ -277,6 +335,7 @@ export function useArceusRunner() {
               type: 'start',
               source,
               optimize,
+              max_steps: maxSteps,
             })
           );
         };
@@ -286,7 +345,8 @@ export function useArceusRunner() {
             const msg = JSON.parse(event.data);
 
             if (msg.type === 'stdout') {
-              appendMessage('stdout', msg.text);
+              const cleaned = String(msg.text || '').replace(/\n$/, '');
+              appendMessage('stdout', cleaned);
             } else if (msg.type === 'waiting_input') {
               setStatus('WAITING_INPUT');
               setWaitingInput({
@@ -298,12 +358,22 @@ export function useArceusRunner() {
             } else if (msg.type === 'errors') {
               setErrors((prev) => [...prev, ...msg.items]);
               msg.items.forEach((err: ErrorItem) => {
-                appendMessage('error', `[${err.phase}] Linha ${err.line}, Coluna ${err.column}: ${err.message}`);
+                appendMessage(
+                  'error',
+                  `[${err.phase}] Linha ${err.line}, Coluna ${err.column}: ${err.message}`,
+                  { file: fileName, line: err.line, column: err.column }
+                );
               });
             } else if (msg.type === 'finished') {
               setStatus('FINISHED');
               setExitCode(msg.exit_code);
               setDurationMs(msg.duration_ms);
+              appendMessage(
+                msg.exit_code === 0 ? 'success' : 'error',
+                msg.exit_code === 0
+                  ? `Finalizado com código 0 (${msg.duration_ms ?? 0} ms)`
+                  : `Finalizado com código ${msg.exit_code} (${msg.duration_ms ?? 0} ms)`
+              );
               clearExecutionTimeout();
               socket.close();
             }
@@ -318,10 +388,10 @@ export function useArceusRunner() {
             socket.close();
             if (retryCount < MAX_RETRIES) {
               retryCount++;
-              const delay = Math.pow(2, retryCount) * 400;
+              const delay = Math.pow(2, retryCount) * 350;
               setTimeout(attemptConnect, delay);
             } else {
-              executeHttpFallback(source, optimize);
+              void executeHttpFallback(source, optimize, maxSteps, fileName);
             }
           } else {
             setStatus('ERROR');
@@ -349,6 +419,7 @@ export function useArceusRunner() {
     analysisData,
     isAnalyzing,
     health,
+    appendMessage,
     runProgram,
     runAnalysis,
     sendStdin,

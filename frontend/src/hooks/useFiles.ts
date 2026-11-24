@@ -11,9 +11,14 @@ export interface EditorFile {
 const STORAGE_FILES_KEY = 'arceus_editor_files_v2';
 const STORAGE_ACTIVE_FILE_KEY = 'arceus_editor_active_file_id';
 
+function normalizeFileName(rawName: string): string {
+  const trimmed = rawName.trim();
+  if (!trimmed) return 'sem_titulo.ml';
+  return trimmed.includes('.') ? trimmed : `${trimmed}.ml`;
+}
+
 export function useFiles() {
   const [files, setFiles] = useState<EditorFile[]>(() => {
-    // 1. Checa se há código compartilhado via URL hash
     const sharedCode = decodeCodeFromUrl(window.location.hash);
     if (sharedCode) {
       return [
@@ -25,7 +30,6 @@ export function useFiles() {
       ];
     }
 
-    // 2. Tenta restaurar sessão de múltiplos arquivos
     try {
       const saved = localStorage.getItem(STORAGE_FILES_KEY);
       if (saved) {
@@ -38,7 +42,6 @@ export function useFiles() {
       // ignore
     }
 
-    // 3. Fallback inicial padrão
     return [
       {
         id: 'file_1',
@@ -58,7 +61,6 @@ export function useFiles() {
     return files[0]?.id || 'file_1';
   });
 
-  // Salva no localStorage quando arquivos mudam
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_FILES_KEY, JSON.stringify(files));
@@ -74,58 +76,100 @@ export function useFiles() {
     content: '',
   };
 
-  const updateContent = useCallback((newContent: string) => {
+  const updateContent = useCallback(
+    (newContent: string) => {
+      setFiles((prev) =>
+        prev.map((f) => (f.id === activeFileId ? { ...f, content: newContent } : f))
+      );
+    },
+    [activeFileId]
+  );
+
+  const updateFileContentById = useCallback((id: string, newContent: string) => {
     setFiles((prev) =>
-      prev.map((f) => (f.id === activeFileId ? { ...f, content: newContent } : f))
+      prev.map((f) => (f.id === id ? { ...f, content: newContent } : f))
     );
-  }, [activeFileId]);
+  }, []);
 
   const selectFile = useCallback((id: string) => {
     setActiveFileId(id);
   }, []);
 
   const sanitizeProgName = (fileName: string) => {
-    const base = fileName.replace(/\.ml$/i, '').replace(/[^a-zA-Z0-9_]/g, '_');
+    const base = fileName.replace(/\.[a-z0-9]+$/i, '').replace(/[^a-zA-Z0-9_]/g, '_');
     return base || 'principal';
   };
 
-  const createFile = useCallback((customName?: string, customContent?: string) => {
-    const id = `file_${Date.now()}`;
-    const name = customName || `arquivo_${files.length + 1}.ml`;
-    const progName = sanitizeProgName(name);
-    // Sintaxe padrão mínima como em qualquer outra linguagem (ex: C, Java, etc.)
-    const content =
-      customContent !== undefined
-        ? customContent
-        : `programa ${progName} {\n    \n} fim.\n`;
+  const createFile = useCallback(
+    (customName?: string, customContent?: string) => {
+      const id = `file_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+      const name = customName ? normalizeFileName(customName) : `arquivo_${files.length + 1}.ml`;
+      const progName = sanitizeProgName(name);
+      const content =
+        customContent !== undefined
+          ? customContent
+          : `programa ${progName} {\n  \n} fim.\n`;
 
-    const newFile: EditorFile = { id, name, content };
-    setFiles((prev) => [...prev, newFile]);
-    setActiveFileId(id);
-    return newFile;
-  }, [files.length]);
+      const newFile: EditorFile = { id, name, content };
+      setFiles((prev) => [...prev, newFile]);
+      setActiveFileId(id);
+      return newFile;
+    },
+    [files.length]
+  );
 
-  const closeFile = useCallback((id: string) => {
-    setFiles((prev) => {
-      if (prev.length <= 1) return prev; // Mantém pelo menos um arquivo aberto
-      const nextFiles = prev.filter((f) => f.id !== id);
-      if (activeFileId === id) {
-        setActiveFileId(nextFiles[0].id);
+  const upsertFile = useCallback(
+    (rawName: string, newContent: string, append = false): EditorFile => {
+      const targetName = normalizeFileName(rawName);
+      const existing = files.find(
+        (f) => f.name.toLowerCase() === targetName.toLowerCase()
+      );
+
+      if (existing) {
+        const updatedContent = append
+          ? (existing.content.endsWith('\n') ? existing.content : `${existing.content}\n`) +
+            newContent
+          : newContent;
+        const updatedFile: EditorFile = { ...existing, content: updatedContent };
+        setFiles((prev) => prev.map((f) => (f.id === existing.id ? updatedFile : f)));
+        return updatedFile;
       }
-      return nextFiles;
-    });
-  }, [activeFileId]);
+
+      const created: EditorFile = {
+        id: `file_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+        name: targetName,
+        content: newContent,
+      };
+      setFiles((prev) => [...prev, created]);
+      return created;
+    },
+    [files]
+  );
+
+  const closeFile = useCallback(
+    (id: string) => {
+      setFiles((prev) => {
+        if (prev.length <= 1) return prev;
+        const nextFiles = prev.filter((f) => f.id !== id);
+        if (activeFileId === id) {
+          setActiveFileId(nextFiles[0].id);
+        }
+        return nextFiles;
+      });
+    },
+    [activeFileId]
+  );
 
   const renameFile = useCallback((id: string, newName: string) => {
-    const cleanName = newName.endsWith('.ml') ? newName : `${newName}.ml`;
+    const cleanName = normalizeFileName(newName);
     setFiles((prev) =>
       prev.map((f) => (f.id === id ? { ...f, name: cleanName } : f))
     );
   }, []);
 
   const loadExternalFile = useCallback((name: string, content: string) => {
-    const id = `file_${Date.now()}`;
-    const cleanName = name.endsWith('.ml') ? name : `${name}.ml`;
+    const id = `file_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+    const cleanName = normalizeFileName(name);
     const newFile: EditorFile = { id, name: cleanName, content };
 
     setFiles((prev) => [...prev, newFile]);
@@ -138,7 +182,9 @@ export function useFiles() {
     activeFileId,
     selectFile,
     updateContent,
+    updateFileContentById,
     createFile,
+    upsertFile,
     closeFile,
     renameFile,
     loadExternalFile,
