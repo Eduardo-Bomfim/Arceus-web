@@ -5,395 +5,1208 @@ import {
   Type,
   Keyboard,
   Check,
-  Code2,
   Settings as SettingsIcon,
   Zap,
   Play,
-  FolderTree,
-  Terminal,
-  Layers,
+  Terminal as TerminalIcon,
+  RotateCcw,
+  Sliders,
 } from 'lucide-react';
-import { useTheme, THEMES } from '../context/ThemeContext';
-import type { ThemeId, EditorFontSize, EditorFontFamily } from '../types';
+import { useTheme } from '../context/ThemeContext';
+import { ACCENT_PRESETS, THEMES } from '../context/themePresets';
+import type { SettingsTabSection } from '../context/themePresets';
+import { useToast } from '../context/ToastContext';
+import type {
+  AccentOverride,
+  BorderRadiusStyle,
+  EditorFontFamily,
+  EditorFontSize,
+  EditorLineHeight,
+  SidebarPosition,
+  TabSize,
+  TerminalCursorStyle,
+  TerminalFontSize,
+  ThemeId,
+  UiDensity,
+} from '../types';
 
 interface SettingsDrawerProps {
   isOpen: boolean;
   onClose: () => void;
-  optimize?: boolean;
-  onToggleOptimize?: (enabled: boolean) => void;
+  optimize: boolean;
+  onToggleOptimize: (enabled: boolean) => void;
 }
 
-type SettingsSection = 'appearance' | 'compiler' | 'font' | 'general' | 'keymap';
+interface ThemePreviewPalette {
+  bgApp: string;
+  bgSurface: string;
+  bgPanel: string;
+  border: string;
+  accentPrimary: string;
+  accentSecondary: string;
+  textMain: string;
+  textMuted: string;
+  keyword: string;
+}
 
-function getThemePreviewVars(themeId: ThemeId) {
-  switch (themeId) {
-    case 'jetbrains':
-      return {
-        bgApp: '#1e1f22',
-        bgSurface: '#1e1f22',
-        bgPanel: '#2b2d30',
-        bgHeader: '#2b2d30',
-        border: '#393b40',
-        accentPrimary: '#3574f0',
-        accentSecondary: '#59a869',
-        textMain: '#dfe1e5',
-        textMuted: '#868a91',
-        keyword: '#cf8e6d',
-        string: '#6aab73',
-      };
-    case 'arceus':
-      return {
-        bgApp: '#0c1017',
-        bgSurface: '#121824',
-        bgPanel: '#0a0d13',
-        bgHeader: '#0f1520',
-        border: '#243247',
-        accentPrimary: '#f59e0b',
-        accentSecondary: '#10b981',
-        textMain: '#f8fafc',
-        textMuted: '#94a3b8',
-        keyword: '#f59e0b',
-        string: '#10b981',
-      };
-    case 'arceus-light':
-      return {
-        bgApp: '#f1f5f9',
-        bgSurface: '#ffffff',
-        bgPanel: '#f8fafc',
-        bgHeader: '#e2e8f0',
-        border: '#cbd5e1',
-        accentPrimary: '#d97706',
-        accentSecondary: '#059669',
-        textMain: '#0f172a',
-        textMuted: '#64748b',
-        keyword: '#b45309',
-        string: '#059669',
-      };
-    case 'void':
-      return {
-        bgApp: '#0a0e14',
-        bgSurface: '#0f141c',
-        bgPanel: '#070a0e',
-        bgHeader: '#0c1017',
-        border: '#1e293b',
-        accentPrimary: '#38bdf8',
-        accentSecondary: '#6366f1',
-        textMain: '#f1f5f9',
-        textMuted: '#94a3b8',
-        keyword: '#38bdf8',
-        string: '#a78bfa',
-      };
-    case 'dialga':
-      return {
-        bgApp: '#060913',
-        bgSurface: '#0b1222',
-        bgPanel: '#04070e',
-        bgHeader: '#080d1a',
-        border: '#1a2c50',
-        accentPrimary: '#06b6d4',
-        accentSecondary: '#3b82f6',
-        textMain: '#f0f9ff',
-        textMuted: '#7dd3fc',
-        keyword: '#06b6d4',
-        string: '#60a5fa',
-      };
-    case 'giratina':
-      return {
-        bgApp: '#0d070a',
-        bgSurface: '#140b0f',
-        bgPanel: '#090406',
-        bgHeader: '#100a0d',
-        border: '#381a25',
-        accentPrimary: '#f43f5e',
-        accentSecondary: '#d97706',
-        textMain: '#fff1f2',
-        textMuted: '#fda4af',
-        keyword: '#f43f5e',
-        string: '#fbbf24',
-      };
-    case 'palkia':
-      return {
-        bgApp: '#0c0614',
-        bgSurface: '#130920',
-        bgPanel: '#08040d',
-        bgHeader: '#10081c',
-        border: '#331a54',
-        accentPrimary: '#a855f7',
-        accentSecondary: '#ec4899',
-        textMain: '#faf5ff',
-        textMuted: '#c084fc',
-        keyword: '#c084fc',
-        string: '#f472b6',
-      };
-    case 'rayquaza':
-      return {
-        bgApp: '#040d0a',
-        bgSurface: '#091813',
-        bgPanel: '#020806',
-        bgHeader: '#071410',
-        border: '#194435',
-        accentPrimary: '#10b981',
-        accentSecondary: '#fbbf24',
-        textMain: '#ecfdf5',
-        textMuted: '#6ee7b7',
-        keyword: '#10b981',
-        string: '#fcd34d',
-      };
-    case 'zekrom':
-      return {
-        bgApp: '#000000',
-        bgSurface: '#0a0c10',
-        bgPanel: '#000000',
-        bgHeader: '#05070a',
-        border: '#1f2937',
-        accentPrimary: '#00e5ff',
-        accentSecondary: '#38bdf8',
-        textMain: '#f8fafc',
-        textMuted: '#94a3b8',
-        keyword: '#00e5ff',
-        string: '#38bdf8',
-      };
-    case 'reshiram':
-      return {
-        bgApp: '#f5f5f4',
-        bgSurface: '#ffffff',
-        bgPanel: '#fafaf9',
-        bgHeader: '#e7e5e4',
-        border: '#d6d3d1',
-        accentPrimary: '#ea580c',
-        accentSecondary: '#f59e0b',
-        textMain: '#1c1917',
-        textMuted: '#78716c',
-        keyword: '#ea580c',
-        string: '#d97706',
-      };
-    default:
-      return {
-        bgApp: '#1e1f22',
-        bgSurface: '#1e1f22',
-        bgPanel: '#2b2d30',
-        bgHeader: '#2b2d30',
-        border: '#393b40',
-        accentPrimary: '#3574f0',
-        accentSecondary: '#59a869',
-        textMain: '#dfe1e5',
-        textMuted: '#868a91',
-        keyword: '#cf8e6d',
-        string: '#6aab73',
-      };
+function getThemePreviewPalette(
+  themeId: ThemeId,
+  accentOverride: AccentOverride
+): ThemePreviewPalette {
+  const palettes: Record<ThemeId, ThemePreviewPalette> = {
+    jetbrains: {
+      bgApp: '#141518',
+      bgSurface: '#1b1c20',
+      bgPanel: '#17181c',
+      border: '#292b32',
+      accentPrimary: '#3574f0',
+      accentSecondary: '#59a869',
+      textMain: '#e3e5e9',
+      textMuted: '#848994',
+      keyword: '#cf8e6d',
+    },
+    arceus: {
+      bgApp: '#090c12',
+      bgSurface: '#111622',
+      bgPanel: '#0d111a',
+      border: '#1f2b3e',
+      accentPrimary: '#f59e0b',
+      accentSecondary: '#10b981',
+      textMain: '#f4f6fa',
+      textMuted: '#8f9bb0',
+      keyword: '#fbbf24',
+    },
+    'arceus-light': {
+      bgApp: '#eef2f6',
+      bgSurface: '#ffffff',
+      bgPanel: '#f7f9fc',
+      border: '#d7e0eb',
+      accentPrimary: '#d97706',
+      accentSecondary: '#059669',
+      textMain: '#0f172a',
+      textMuted: '#64748b',
+      keyword: '#b45309',
+    },
+    void: {
+      bgApp: '#080b10',
+      bgSurface: '#0f141d',
+      bgPanel: '#0b0f17',
+      border: '#1d2738',
+      accentPrimary: '#38bdf8',
+      accentSecondary: '#34d399',
+      textMain: '#edf2f8',
+      textMuted: '#8695aa',
+      keyword: '#38bdf8',
+    },
+    dialga: {
+      bgApp: '#050811',
+      bgSurface: '#0b1221',
+      bgPanel: '#080d19',
+      border: '#18294a',
+      accentPrimary: '#06b6d4',
+      accentSecondary: '#3b82f6',
+      textMain: '#eff8ff',
+      textMuted: '#76b6d8',
+      keyword: '#06b6d4',
+    },
+    giratina: {
+      bgApp: '#0a0608',
+      bgSurface: '#130b0f',
+      bgPanel: '#0e080b',
+      border: '#301923',
+      accentPrimary: '#f43f5e',
+      accentSecondary: '#d97706',
+      textMain: '#fdf2f4',
+      textMuted: '#c28e99',
+      keyword: '#f43f5e',
+    },
+    palkia: {
+      bgApp: '#090510',
+      bgSurface: '#12091e',
+      bgPanel: '#0d0716',
+      border: '#2d184a',
+      accentPrimary: '#a855f7',
+      accentSecondary: '#ec4899',
+      textMain: '#f9f5ff',
+      textMuted: '#ab86d9',
+      keyword: '#c084fc',
+    },
+    rayquaza: {
+      bgApp: '#030a08',
+      bgSurface: '#091712',
+      bgPanel: '#06110d',
+      border: '#193e30',
+      accentPrimary: '#10b981',
+      accentSecondary: '#fbbf24',
+      textMain: '#ecfdf5',
+      textMuted: '#6cb899',
+      keyword: '#34d399',
+    },
+    zekrom: {
+      bgApp: '#000000',
+      bgSurface: '#090b10',
+      bgPanel: '#040508',
+      border: '#1c2433',
+      accentPrimary: '#00e5ff',
+      accentSecondary: '#38bdf8',
+      textMain: '#f8fafc',
+      textMuted: '#8492a6',
+      keyword: '#00e5ff',
+    },
+    reshiram: {
+      bgApp: '#efeeec',
+      bgSurface: '#ffffff',
+      bgPanel: '#f7f6f4',
+      border: '#dbd8d3',
+      accentPrimary: '#ea580c',
+      accentSecondary: '#d97706',
+      textMain: '#1c1917',
+      textMuted: '#78716c',
+      keyword: '#ea580c',
+    },
+  };
+
+  const base = palettes[themeId] || palettes.jetbrains;
+  if (accentOverride !== 'theme' && ACCENT_PRESETS[accentOverride]) {
+    return { ...base, accentPrimary: ACCENT_PRESETS[accentOverride].color };
   }
+  return base;
 }
 
-// Visualizador Interativo de Prévia da IDE
+function ToggleRow({
+  title,
+  description,
+  checked,
+  onChange,
+}: {
+  title: string;
+  description: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-4 p-3 rounded-[var(--ui-radius)] border border-[var(--border-subtle)] bg-[var(--bg-surface-soft)]">
+      <div className="min-w-0">
+        <div className="font-medium text-xs text-[var(--text-main)]">{title}</div>
+        <div className="text-[11px] text-[var(--text-muted)] mt-0.5 leading-snug">
+          {description}
+        </div>
+      </div>
+
+      <label className="relative inline-flex items-center cursor-pointer shrink-0">
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={(e) => onChange(e.target.checked)}
+          className="sr-only peer"
+        />
+        <div className="w-9 h-5 bg-[var(--bg-subtle)] rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[var(--accent-primary)]" />
+      </label>
+    </div>
+  );
+}
+
 function IdeThemePreview({ themeId }: { themeId: ThemeId }) {
-  const p = getThemePreviewVars(themeId);
+  const { settings } = useTheme();
+  const p = getThemePreviewPalette(themeId, settings.accentOverride);
   const currentTheme = THEMES.find((t) => t.id === themeId) || THEMES[0];
+  const radius =
+    settings.borderRadius === 'sharp'
+      ? '4px'
+      : settings.borderRadius === 'pill'
+      ? '10px'
+      : '7px';
+
+  const sidebarBlock = (
+    <div
+      className="w-24 p-1.5 text-[9px] flex flex-col gap-1 shrink-0 border"
+      style={{
+        backgroundColor: p.bgPanel,
+        borderColor: p.border,
+        color: p.textMuted,
+        borderRadius: radius,
+      }}
+    >
+      <div className="text-[8px] uppercase tracking-wider opacity-60 px-1">
+        Explorador
+      </div>
+      <div
+        className="flex items-center gap-1.5 px-1.5 py-1 font-mono"
+        style={{
+          backgroundColor: `${p.accentPrimary}22`,
+          color: p.textMain,
+          borderRadius: radius,
+        }}
+      >
+        <span
+          className="w-1.5 h-1.5 rounded-full shrink-0"
+          style={{ backgroundColor: p.accentPrimary }}
+        />
+        <span className="truncate">principal.ml</span>
+      </div>
+      <div className="flex items-center gap-1.5 px-1.5 py-0.5 font-mono opacity-65">
+        <span className="w-1.5 h-1.5 rounded-full bg-current opacity-40 shrink-0" />
+        <span className="truncate">math.ml</span>
+      </div>
+    </div>
+  );
 
   return (
     <div
-      className="rounded-lg border overflow-hidden shadow-lg transition-all duration-200 select-none"
+      className="border overflow-hidden shadow-lg transition-all select-none p-1.5 flex flex-col gap-1.5"
       style={{
         backgroundColor: p.bgApp,
         borderColor: p.border,
+        borderRadius: radius,
       }}
     >
-      {/* Topbar da Prévia */}
+      {/* Topbar Limpa da Prévia */}
       <div
-        className="h-7 px-2 flex items-center justify-between border-b text-[10px]"
-        style={{
-          backgroundColor: p.bgHeader,
-          borderColor: p.border,
-          color: p.textMuted,
-        }}
+        className="h-7 px-2 flex items-center justify-between text-[9.5px]"
+        style={{ color: p.textMuted }}
       >
         <div className="flex items-center gap-1.5">
-          <div className="flex gap-1">
-            <span className="w-2 h-2 rounded-full bg-red-500/80 inline-block" />
-            <span className="w-2 h-2 rounded-full bg-yellow-500/80 inline-block" />
-            <span className="w-2 h-2 rounded-full bg-green-500/80 inline-block" />
-          </div>
           <span
-            className="font-semibold text-[10.5px] ml-1"
-            style={{ color: p.textMain }}
+            className="w-3 h-3 rounded-full border-2 flex items-center justify-center"
+            style={{ borderColor: p.accentPrimary }}
           >
-            Arceus Web
+            <span
+              className="w-1 h-1 rounded-full"
+              style={{ backgroundColor: p.accentPrimary }}
+            />
           </span>
-          <span className="opacity-40">•</span>
-          <span className="text-[9.5px]">arceus-web</span>
+          <span className="font-semibold" style={{ color: p.textMain }}>
+            Arceus
+          </span>
         </div>
 
-        <div className="flex items-center gap-2">
-          <div
-            className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[9.5px] font-medium"
+        <div
+          className="px-3 py-0.5 border text-[8.5px] opacity-80"
+          style={{
+            backgroundColor: p.bgSurface,
+            borderColor: p.border,
+            borderRadius: radius,
+          }}
+        >
+          Buscar comandos...
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          <span
+            className="flex items-center gap-1 px-1.5 py-0.5 font-semibold text-[8.5px]"
             style={{
               backgroundColor: `${p.accentSecondary}22`,
               color: p.accentSecondary,
+              borderRadius: radius,
             }}
           >
-            <Play className="w-2.5 h-2.5 fill-current" />
-            <span>Run</span>
-          </div>
-          <span
-            className="text-[9px] px-1 py-0.2 rounded"
-            style={{
-              backgroundColor: `${p.accentPrimary}22`,
-              color: p.accentPrimary,
-            }}
-          >
-            Online
+            <Play className="w-2 h-2 fill-current" />
+            Executar
           </span>
+          <span
+            className="w-1.5 h-1.5 rounded-full"
+            style={{ backgroundColor: p.accentSecondary }}
+          />
         </div>
       </div>
 
-      {/* Corpo da Prévia: ActivityBar + Sidebar + Editor & Terminal */}
-      <div className="flex h-36">
-        {/* ActivityBar */}
-        <div
-          className="w-7 border-r flex flex-col items-center py-1.5 gap-2 shrink-0"
-          style={{
-            backgroundColor: p.bgApp,
-            borderColor: p.border,
-            color: p.textMuted,
-          }}
-        >
-          <FolderTree
-            className="w-3 h-3"
-            style={{ color: p.accentPrimary }}
-          />
-          <Terminal className="w-3 h-3 opacity-60" />
-          <Layers className="w-3 h-3 opacity-60" />
-        </div>
+      {/* Área principal em ilhas */}
+      <div className="flex gap-1.5 h-36">
+        {settings.sidebarPosition === 'left' && sidebarBlock}
 
-        {/* Mini Project Sidebar */}
-        <div
-          className="w-28 border-r p-1.5 text-[9.5px] flex flex-col gap-0.5 shrink-0"
-          style={{
-            backgroundColor: p.bgPanel,
-            borderColor: p.border,
-            color: p.textMuted,
-          }}
-        >
-          <div className="font-semibold text-[9px] uppercase tracking-wider mb-0.5 opacity-60">
-            Project
-          </div>
-          <div className="flex items-center gap-1 opacity-80">
-            <span>▾</span>
-            <span>src</span>
-          </div>
+        <div className="flex-1 flex flex-col gap-1.5 min-w-0">
+          {/* Card do Editor */}
           <div
-            className="flex items-center gap-1 pl-2.5 py-0.5 rounded font-mono font-medium"
+            className="flex-1 flex flex-col overflow-hidden border"
             style={{
-              backgroundColor: `${p.accentPrimary}25`,
-              color: p.textMain,
-            }}
-          >
-            <span
-              className="w-2 h-2 rounded-[1px] flex items-center justify-center text-[6px] font-bold"
-              style={{
-                backgroundColor: `${p.accentPrimary}33`,
-                color: p.accentPrimary,
-              }}
-            >
-              M
-            </span>
-            <span>main.ml</span>
-          </div>
-        </div>
-
-        {/* Área Central: Tabs + Código + Mini Terminal */}
-        <div
-          className="flex-1 flex flex-col overflow-hidden"
-          style={{ backgroundColor: p.bgSurface }}
-        >
-          {/* Tab Bar */}
-          <div
-            className="h-5 px-1.5 border-b flex items-center gap-1 text-[9.5px]"
-            style={{
-              backgroundColor: p.bgHeader,
+              backgroundColor: p.bgSurface,
               borderColor: p.border,
+              borderRadius: radius,
             }}
           >
             <div
-              className="flex items-center gap-1 px-1.5 py-0.5 rounded-t font-mono text-[9px]"
-              style={{
-                backgroundColor: p.bgSurface,
-                color: p.textMain,
-                borderBottom: `2px solid ${p.accentPrimary}`,
-              }}
+              className="h-5 px-2 border-b flex items-center justify-between text-[8.5px]"
+              style={{ backgroundColor: p.bgPanel, borderColor: p.border }}
             >
-              <span>main.ml</span>
+              <span
+                className="px-1.5 py-0.5 font-mono"
+                style={{
+                  backgroundColor: p.bgSurface,
+                  color: p.textMain,
+                  borderRadius: '4px',
+                }}
+              >
+                principal.ml
+              </span>
+              <span style={{ color: p.accentPrimary }}>Formatar</span>
+            </div>
+
+            {settings.showBreadcrumbs && (
+              <div
+                className="h-4 px-2 border-b flex items-center text-[8px] font-mono"
+                style={{ borderColor: p.border, color: p.textMuted }}
+              >
+                principal.ml › programa demo
+              </div>
+            )}
+
+            <div
+              className="flex-1 p-2 font-mono text-[9px] leading-relaxed"
+              style={{ color: p.textMain }}
+            >
+              <div>
+                {settings.showLineNumbers && (
+                  <span className="opacity-35 mr-2">1</span>
+                )}
+                <span style={{ color: p.keyword, fontWeight: 600 }}>programa</span>{' '}
+                demo {'{'}
+              </div>
+              <div>
+                {settings.showLineNumbers && (
+                  <span className="opacity-35 mr-2">2</span>
+                )}
+                {'  '}
+                <span style={{ color: p.keyword }}>var</span> x{' '}
+                <span style={{ color: p.accentPrimary }}>inteiro</span>; x = 42;
+              </div>
+              <div>
+                {settings.showLineNumbers && (
+                  <span className="opacity-35 mr-2">3</span>
+                )}
+                {'}'} <span style={{ color: p.keyword }}>fim.</span>
+              </div>
             </div>
           </div>
 
-          {/* Editor de Código */}
+          {/* Card do Terminal Interativo */}
           <div
-            className="flex-1 p-2 font-mono text-[9.5px] leading-relaxed overflow-hidden"
+            className="h-12 border p-1.5 font-mono text-[8.5px] flex flex-col justify-center"
             style={{
               backgroundColor: p.bgSurface,
-              color: p.textMain,
-            }}
-          >
-            <div>
-              <span className="opacity-40 select-none mr-2">1</span>
-              <span style={{ color: p.keyword, fontWeight: 'bold' }}>programa</span>{' '}
-              <span style={{ color: p.textMain }}>arceus_demo {'{'}</span>
-            </div>
-            <div>
-              <span className="opacity-40 select-none mr-2">2</span>
-              <span className="opacity-0">..</span>
-              <span style={{ color: p.accentSecondary }}>limite</span> ={' '}
-              <span style={{ color: p.accentPrimary }}>10</span>;
-            </div>
-            <div>
-              <span className="opacity-40 select-none mr-2">3</span>
-              <span className="opacity-0">..</span>
-              <span style={{ color: p.keyword }}>imprima</span>(
-              <span style={{ color: p.string }}>&quot;Resultado: &quot;</span>, limite);
-            </div>
-            <div>
-              <span className="opacity-40 select-none mr-2">4</span>
-              <span>{'}'}</span>
-            </div>
-          </div>
-
-          {/* Mini Terminal */}
-          <div
-            className="h-10 border-t p-1.5 font-mono text-[8.5px] flex flex-col justify-center"
-            style={{
-              backgroundColor: p.bgPanel,
               borderColor: p.border,
               color: p.textMuted,
+              borderRadius: radius,
             }}
           >
-            <div className="flex items-center gap-1">
-              <span style={{ color: p.accentSecondary }}>&gt;</span>
-              <span style={{ color: p.textMain }}>Resultado: 10</span>
+            <div>
+              <span style={{ color: p.accentPrimary }}>~/src $</span>{' '}
+              <span style={{ color: p.textMain }}>arceus run</span>
             </div>
-            <div className="text-[8px] opacity-60">
-              Process finished with exit code 0
-            </div>
+            <div style={{ color: p.accentSecondary }}>42 • código 0 (9 ms)</div>
           </div>
         </div>
+
+        {settings.sidebarPosition === 'right' && sidebarBlock}
       </div>
 
-      {/* Mini StatusBar */}
-      <div
-        className="h-4 px-2 border-t flex items-center justify-between text-[8px]"
-        style={{
-          backgroundColor: p.bgHeader,
-          borderColor: p.border,
-          color: p.textMuted,
-        }}
-      >
-        <div className="flex items-center gap-2">
-          <span>MiniLang 0.1.0</span>
-          <span>•</span>
-          <span style={{ color: p.accentSecondary }}>No problems</span>
+      {/* StatusBar minimalista opcional */}
+      {settings.showStatusBar && (
+        <div
+          className="h-4 px-2 flex items-center justify-between text-[8px]"
+          style={{ color: p.textMuted }}
+        >
+          <span>Nenhum problema • Terminal</span>
+          <span>
+            Ln 2, Col 10 • {currentTheme.name}
+          </span>
         </div>
-        <div className="flex items-center gap-2 font-mono">
-          <span>3:12</span>
-          <span>UTF-8</span>
-          <span style={{ color: p.accentPrimary }}>{currentTheme.name}</span>
+      )}
+    </div>
+  );
+}
+
+function SettingsDialogContent({
+  onClose,
+  optimize,
+  onToggleOptimize,
+}: Omit<SettingsDrawerProps, 'isOpen'>) {
+  const {
+    theme,
+    setTheme,
+    settings,
+    updateSettings,
+    resetSettings,
+    settingsSection,
+  } = useTheme();
+  const { showToast } = useToast();
+
+  const [activeSection, setActiveSection] = useState<SettingsTabSection>(settingsSection);
+  const [hoveredTheme, setHoveredTheme] = useState<ThemeId | null>(null);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
+  const currentPreviewTheme = hoveredTheme || theme;
+
+  const navItems: Array<{
+    id: SettingsTabSection;
+    label: string;
+    icon: React.ReactNode;
+  }> = [
+    {
+      id: 'appearance',
+      label: 'Aparência e Temas',
+      icon: <Palette className="w-3.5 h-3.5 text-[var(--accent-primary)]" />,
+    },
+    {
+      id: 'editor',
+      label: 'Editor de Código',
+      icon: <Type className="w-3.5 h-3.5 text-[var(--accent-secondary)]" />,
+    },
+    {
+      id: 'terminal',
+      label: 'Terminal Interativo',
+      icon: <TerminalIcon className="w-3.5 h-3.5 text-sky-400" />,
+    },
+    {
+      id: 'compiler',
+      label: 'Compilador e Execução',
+      icon: <Zap className="w-3.5 h-3.5 text-amber-400" />,
+    },
+    {
+      id: 'keymap',
+      label: 'Atalhos e Sistema',
+      icon: <Keyboard className="w-3.5 h-3.5 text-purple-400" />,
+    },
+  ];
+
+  const handleReset = () => {
+    resetSettings();
+    onToggleOptimize(false);
+    showToast('Configurações restauradas para o padrão.', 'info');
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm select-none"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-4xl h-[680px] max-h-[90vh] bg-[var(--bg-panel)] border border-[var(--border-color)] rounded-[var(--ui-radius-lg)] shadow-2xl flex flex-col overflow-hidden text-xs text-[var(--text-main)] transition-colors"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="h-11 px-4 bg-[var(--bg-surface)] border-b border-[var(--border-subtle)] flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-2.5">
+            <SettingsIcon className="w-4 h-4 text-[var(--accent-primary)]" />
+            <span className="font-semibold text-sm text-[var(--text-main)]">
+              Configurações da IDE
+            </span>
+          </div>
+
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-[var(--ui-radius)] text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-subtle)] transition"
+            title="Fechar (Esc)"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Corpo */}
+        <div className="flex-1 flex overflow-hidden">
+          {/* Navegação Lateral */}
+          <nav className="w-56 bg-[var(--bg-app)] border-r border-[var(--border-subtle)] p-2.5 flex flex-col justify-between shrink-0 overflow-y-auto">
+            <div className="space-y-1">
+              {navItems.map((item) => {
+                const isActive = activeSection === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => setActiveSection(item.id)}
+                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-[var(--ui-radius)] text-xs transition text-left ${
+                      isActive
+                        ? 'bg-[var(--accent-soft)] text-[var(--text-main)] font-semibold'
+                        : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-subtle-soft)]'
+                    }`}
+                  >
+                    {item.icon}
+                    <span>{item.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <button
+              onClick={handleReset}
+              className="flex items-center gap-2 px-3 py-2 rounded-[var(--ui-radius)] text-[11px] text-[var(--text-muted)] hover:text-rose-400 hover:bg-rose-500/10 transition mt-4"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Restaurar padrões</span>
+            </button>
+          </nav>
+
+          {/* Conteúdo */}
+          <div className="flex-1 bg-[var(--bg-panel)] p-6 overflow-y-auto space-y-6">
+            {/* 1. APARÊNCIA & TEMAS */}
+            {activeSection === 'appearance' && (
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-sm font-semibold text-[var(--text-main)]">
+                    Aparência e Esquema de Cores
+                  </h3>
+                  <p className="text-[11.5px] text-[var(--text-muted)] mt-0.5">
+                    Personalize cores, densidade visual, arredondamento e visibilidade da interface.
+                  </p>
+                </div>
+
+                {/* Prévia Visual em Tempo Real */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="font-medium text-[var(--text-main)]">
+                      Prévia em tempo real
+                    </span>
+                    <span className="text-[var(--text-muted)] font-mono text-[10.5px]">
+                      {hoveredTheme
+                        ? `Visualizando: ${THEMES.find((t) => t.id === hoveredTheme)?.name}`
+                        : `Ativo: ${THEMES.find((t) => t.id === theme)?.name}`}
+                    </span>
+                  </div>
+                  <IdeThemePreview themeId={currentPreviewTheme} />
+                </div>
+
+                {/* Grid de Temas */}
+                <div className="space-y-2">
+                  <div className="text-xs font-semibold text-[var(--text-main)]">Temas</div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    {THEMES.map((t) => {
+                      const isSelected = theme === t.id;
+                      const [cBg, cSurface, cPrimary, cAccent] = t.previewColors;
+
+                      return (
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() => setTheme(t.id)}
+                          onMouseEnter={() => setHoveredTheme(t.id)}
+                          onMouseLeave={() => setHoveredTheme(null)}
+                          className={`p-3 rounded-[var(--ui-radius)] border text-left transition flex flex-col justify-between ${
+                            isSelected
+                              ? 'border-[var(--accent-primary)] bg-[var(--bg-surface)] shadow-sm'
+                              : 'border-[var(--border-subtle)] bg-[var(--bg-surface-soft)] hover:border-[var(--accent-border)] hover:bg-[var(--bg-surface)]'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="font-semibold text-xs text-[var(--text-main)]">
+                              {t.name}
+                            </span>
+                            {isSelected && (
+                              <span className="w-4 h-4 rounded-full bg-[var(--accent-primary)] text-white flex items-center justify-center">
+                                <Check className="w-2.5 h-2.5 stroke-[3]" />
+                              </span>
+                            )}
+                          </div>
+
+                          <p className="text-[11px] text-[var(--text-muted)] line-clamp-1 mb-2.5">
+                            {t.subtitle}
+                          </p>
+
+                          <div className="flex items-center gap-1.5 w-full">
+                            <span className="w-3.5 h-3.5 rounded-full border border-black/25" style={{ backgroundColor: cBg }} />
+                            <span className="w-3.5 h-3.5 rounded-full border border-black/25" style={{ backgroundColor: cSurface }} />
+                            <span className="w-3.5 h-3.5 rounded-full border border-black/25" style={{ backgroundColor: cPrimary }} />
+                            <span className="w-3.5 h-3.5 rounded-full border border-black/25" style={{ backgroundColor: cAccent }} />
+                            <span className="text-[10px] ml-auto font-mono text-[var(--text-muted)]">
+                              {t.isDark ? 'Escuro' : 'Claro'}
+                            </span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Cor de Destaque (Accent Override) */}
+                <div className="space-y-2">
+                  <div className="text-xs font-semibold text-[var(--text-main)]">
+                    Cor de Destaque
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => updateSettings({ accentOverride: 'theme' })}
+                      className={`px-3 py-1.5 rounded-[var(--ui-radius)] border text-xs transition flex items-center gap-2 ${
+                        settings.accentOverride === 'theme'
+                          ? 'border-[var(--accent-primary)] bg-[var(--bg-surface)] text-[var(--text-main)] font-medium'
+                          : 'border-[var(--border-subtle)] bg-[var(--bg-surface-soft)] text-[var(--text-muted)] hover:text-[var(--text-main)]'
+                      }`}
+                    >
+                      <Sliders className="w-3 h-3" />
+                      <span>Padrão do Tema</span>
+                    </button>
+
+                    {(Object.keys(ACCENT_PRESETS) as Array<Exclude<AccentOverride, 'theme'>>).map(
+                      (key) => {
+                        const preset = ACCENT_PRESETS[key];
+                        const active = settings.accentOverride === key;
+                        return (
+                          <button
+                            key={key}
+                            type="button"
+                            onClick={() => updateSettings({ accentOverride: key })}
+                            className={`px-3 py-1.5 rounded-[var(--ui-radius)] border text-xs transition flex items-center gap-2 ${
+                              active
+                                ? 'border-[var(--accent-primary)] bg-[var(--bg-surface)] text-[var(--text-main)] font-medium'
+                                : 'border-[var(--border-subtle)] bg-[var(--bg-surface-soft)] text-[var(--text-muted)] hover:text-[var(--text-main)]'
+                            }`}
+                          >
+                            <span
+                              className="w-3 h-3 rounded-full shrink-0"
+                              style={{ backgroundColor: preset.color }}
+                            />
+                            <span>{preset.label}</span>
+                          </button>
+                        );
+                      }
+                    )}
+                  </div>
+                </div>
+
+                {/* Densidade, Arredondamento & Posição */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-[var(--text-main)]">
+                      Densidade Visual
+                    </label>
+                    <div className="grid grid-cols-3 gap-1">
+                      {(
+                        [
+                          ['compact', 'Compacta'],
+                          ['comfortable', 'Padrão'],
+                          ['spacious', 'Ampla'],
+                        ] as Array<[UiDensity, string]>
+                      ).map(([val, lbl]) => (
+                        <button
+                          key={val}
+                          type="button"
+                          onClick={() => updateSettings({ uiDensity: val })}
+                          className={`py-1.5 px-2 rounded-[var(--ui-radius)] border text-[11px] transition ${
+                            settings.uiDensity === val
+                              ? 'border-[var(--accent-primary)] bg-[var(--bg-surface)] text-[var(--accent-primary)] font-semibold'
+                              : 'border-[var(--border-subtle)] bg-[var(--bg-surface-soft)] text-[var(--text-muted)]'
+                          }`}
+                        >
+                          {lbl}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-[var(--text-main)]">
+                      Cantos e Bordas
+                    </label>
+                    <div className="grid grid-cols-3 gap-1">
+                      {(
+                        [
+                          ['sharp', 'Retos'],
+                          ['rounded', 'Suaves'],
+                          ['pill', 'Redondos'],
+                        ] as Array<[BorderRadiusStyle, string]>
+                      ).map(([val, lbl]) => (
+                        <button
+                          key={val}
+                          type="button"
+                          onClick={() => updateSettings({ borderRadius: val })}
+                          className={`py-1.5 px-2 rounded-[var(--ui-radius)] border text-[11px] transition ${
+                            settings.borderRadius === val
+                              ? 'border-[var(--accent-primary)] bg-[var(--bg-surface)] text-[var(--accent-primary)] font-semibold'
+                              : 'border-[var(--border-subtle)] bg-[var(--bg-surface-soft)] text-[var(--text-muted)]'
+                          }`}
+                        >
+                          {lbl}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-medium text-[var(--text-main)]">
+                      Lado do Explorador
+                    </label>
+                    <div className="grid grid-cols-2 gap-1">
+                      {(
+                        [
+                          ['left', 'Esquerda'],
+                          ['right', 'Direita'],
+                        ] as Array<[SidebarPosition, string]>
+                      ).map(([val, lbl]) => (
+                        <button
+                          key={val}
+                          type="button"
+                          onClick={() => updateSettings({ sidebarPosition: val })}
+                          className={`py-1.5 px-2 rounded-[var(--ui-radius)] border text-[11px] transition ${
+                            settings.sidebarPosition === val
+                              ? 'border-[var(--accent-primary)] bg-[var(--bg-surface)] text-[var(--accent-primary)] font-semibold'
+                              : 'border-[var(--border-subtle)] bg-[var(--bg-surface-soft)] text-[var(--text-muted)]'
+                          }`}
+                        >
+                          {lbl}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Elementos da Interface */}
+                <div className="space-y-2">
+                  <div className="text-xs font-semibold text-[var(--text-main)]">
+                    Elementos da Interface
+                  </div>
+                  <div className="space-y-2">
+                    <ToggleRow
+                      title="Exibir Breadcrumbs de Escopo"
+                      description="Mostra o caminho do arquivo e blocos ativos (programa, se, enquanto) acima do código."
+                      checked={settings.showBreadcrumbs}
+                      onChange={(val) => updateSettings({ showBreadcrumbs: val })}
+                    />
+                    <ToggleRow
+                      title="Exibir Barra de Status Inferior"
+                      description="Mostra contagem de erros, linha/coluna do cursor, indentação e tema atual."
+                      checked={settings.showStatusBar}
+                      onChange={(val) => updateSettings({ showStatusBar: val })}
+                    />
+                    <ToggleRow
+                      title="Transições e Animações Suaves"
+                      description="Suaviza trocas de tema, foco e abertura de painéis."
+                      checked={settings.smoothAnimations}
+                      onChange={(val) => updateSettings({ smoothAnimations: val })}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* 2. EDITOR DE CÓDIGO */}
+            {activeSection === 'editor' && (
+              <div className="space-y-5">
+                <div>
+                  <h3 className="text-sm font-semibold text-[var(--text-main)]">
+                    Editor de Código MiniLang
+                  </h3>
+                  <p className="text-[11.5px] text-[var(--text-muted)] mt-0.5">
+                    Ajuste tipografia, espaçamento, auxiliares de edição e comportamento visual.
+                  </p>
+                </div>
+
+                {/* Família da Fonte */}
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold text-[var(--text-main)]">
+                    Família da Fonte
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    {(
+                      [
+                        ['JetBrains Mono', 'JetBrains Mono'],
+                        ['Fira Code', 'Fira Code'],
+                        ['monospace', 'Monospace Padrão'],
+                      ] as Array<[EditorFontFamily, string]>
+                    ).map(([font, label]) => (
+                      <button
+                        key={font}
+                        type="button"
+                        onClick={() => updateSettings({ fontFamily: font })}
+                        className={`p-3 rounded-[var(--ui-radius)] border text-left transition ${
+                          settings.fontFamily === font
+                            ? 'border-[var(--accent-primary)] bg-[var(--bg-surface)] text-[var(--text-main)] font-semibold'
+                            : 'border-[var(--border-subtle)] bg-[var(--bg-surface-soft)] text-[var(--text-muted)] hover:text-[var(--text-main)]'
+                        }`}
+                      >
+                        <div className="text-xs">{label}</div>
+                        <div className="text-[11px] mt-1 opacity-75 font-mono" style={{ fontFamily: font }}>
+                          x != 0 =&gt; escreva x;
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Tamanho, Altura e Indentação */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <label className="text-xs font-semibold text-[var(--text-main)]">
+                      Tamanho da Fonte
+                    </label>
+                    <div className="grid grid-cols-6 gap-1.5">
+                      {(['12px', '13px', '14px', '16px', '18px', '20px'] as EditorFontSize[]).map(
+                        (size) => (
+                          <button
+                            key={size}
+                            type="button"
+                            onClick={() => updateSettings({ fontSize: size })}
+                            className={`py-1.5 px-2 rounded-[var(--ui-radius)] border font-mono text-center transition ${
+                              settings.fontSize === size
+                                ? 'border-[var(--accent-primary)] bg-[var(--bg-surface)] text-[var(--accent-primary)] font-bold'
+                                : 'border-[var(--border-subtle)] bg-[var(--bg-surface-soft)] text-[var(--text-muted)] hover:text-[var(--text-main)]'
+                            }`}
+                          >
+                            {size}
+                          </button>
+                        )
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-[var(--text-main)]">
+                      Indentação (Tab)
+                    </label>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      {([2, 4] as TabSize[]).map((tab) => (
+                        <button
+                          key={tab}
+                          type="button"
+                          onClick={() => updateSettings({ tabSize: tab })}
+                          className={`py-1.5 px-2 rounded-[var(--ui-radius)] border font-mono text-center transition ${
+                            settings.tabSize === tab
+                              ? 'border-[var(--accent-primary)] bg-[var(--bg-surface)] text-[var(--accent-primary)] font-bold'
+                              : 'border-[var(--border-subtle)] bg-[var(--bg-surface-soft)] text-[var(--text-muted)] hover:text-[var(--text-main)]'
+                          }`}
+                        >
+                          {tab} esp.
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Altura da Linha */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-[var(--text-main)]">
+                    Espaçamento Entre Linhas
+                  </label>
+                  <div className="grid grid-cols-3 gap-2 max-w-xs">
+                    {(
+                      [
+                        ['1.4', '1.4 (Justo)'],
+                        ['1.6', '1.6 (Padrão)'],
+                        ['1.8', '1.8 (Aberto)'],
+                      ] as Array<[EditorLineHeight, string]>
+                    ).map(([lh, label]) => (
+                      <button
+                        key={lh}
+                        type="button"
+                        onClick={() => updateSettings({ lineHeight: lh })}
+                        className={`py-1.5 px-2 rounded-[var(--ui-radius)] border text-[11px] transition ${
+                          settings.lineHeight === lh
+                            ? 'border-[var(--accent-primary)] bg-[var(--bg-surface)] text-[var(--accent-primary)] font-semibold'
+                            : 'border-[var(--border-subtle)] bg-[var(--bg-surface-soft)] text-[var(--text-muted)]'
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Toggles do Editor */}
+                <div className="space-y-2 pt-1">
+                  <ToggleRow
+                    title="Ligaduras Tipográficas"
+                    description="Une combinações de caracteres como ==, !=, >= e <= em glifos contínuos."
+                    checked={settings.enableLigatures}
+                    onChange={(val) => updateSettings({ enableLigatures: val })}
+                  />
+                  <ToggleRow
+                    title="Numeração de Linhas"
+                    description="Exibe a coluna lateral com números de linha e marcadores de dobra."
+                    checked={settings.showLineNumbers}
+                    onChange={(val) => updateSettings({ showLineNumbers: val })}
+                  />
+                  <ToggleRow
+                    title="Destacar Linha Atual"
+                    description="Realça sutilmente a linha onde o cursor de texto está posicionado."
+                    checked={settings.highlightActiveLine}
+                    onChange={(val) => updateSettings({ highlightActiveLine: val })}
+                  />
+                  <ToggleRow
+                    title="Fechar Chaves e Parênteses Automaticamente"
+                    description="Completa pares de { }, ( ) e aspas automaticamente ao digitar."
+                    checked={settings.closeBrackets}
+                    onChange={(val) => updateSettings({ closeBrackets: val })}
+                  />
+                  <ToggleRow
+                    title="Quebra Automática de Linha (Soft-Wrap)"
+                    description="Quebra linhas longas na largura do editor sem barra de rolagem horizontal."
+                    checked={settings.editorLineWrapping}
+                    onChange={(val) => updateSettings({ editorLineWrapping: val })}
+                  />
+                  <ToggleRow
+                    title="Exibir Minimapa de Código"
+                    description="Mostra uma miniatura lateral do arquivo no canto direito do editor."
+                    checked={settings.showMinimap}
+                    onChange={(val) => updateSettings({ showMinimap: val })}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* 3. TERMINAL INTERATIVO */}
+            {activeSection === 'terminal' && (
+              <div className="space-y-5">
+                <div>
+                  <h3 className="text-sm font-semibold text-[var(--text-main)]">
+                    Terminal Interativo & Console
+                  </h3>
+                  <p className="text-[11.5px] text-[var(--text-muted)] mt-0.5">
+                    Configure a aparência do prompt de comandos e comportamento durante execuções.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-[var(--text-main)]">
+                      Tamanho da Fonte do Terminal
+                    </label>
+                    <div className="grid grid-cols-4 gap-1.5">
+                      {(['11px', '12px', '13px', '14px'] as TerminalFontSize[]).map((size) => (
+                        <button
+                          key={size}
+                          type="button"
+                          onClick={() => updateSettings({ terminalFontSize: size })}
+                          className={`py-1.5 px-2 rounded-[var(--ui-radius)] border font-mono text-center transition ${
+                            settings.terminalFontSize === size
+                              ? 'border-[var(--accent-primary)] bg-[var(--bg-surface)] text-[var(--accent-primary)] font-bold'
+                              : 'border-[var(--border-subtle)] bg-[var(--bg-surface-soft)] text-[var(--text-muted)]'
+                          }`}
+                        >
+                          {size}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-[var(--text-main)]">
+                      Estilo do Cursor
+                    </label>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {(
+                        [
+                          ['bar', 'Barra |'],
+                          ['block', 'Bloco ▋'],
+                          ['underline', 'Linha _'],
+                        ] as Array<[TerminalCursorStyle, string]>
+                      ).map(([styleVal, lbl]) => (
+                        <button
+                          key={styleVal}
+                          type="button"
+                          onClick={() => updateSettings({ terminalCursorStyle: styleVal })}
+                          className={`py-1.5 px-2 rounded-[var(--ui-radius)] border text-[11px] font-mono transition ${
+                            settings.terminalCursorStyle === styleVal
+                              ? 'border-[var(--accent-primary)] bg-[var(--bg-surface)] text-[var(--accent-primary)] font-semibold'
+                              : 'border-[var(--border-subtle)] bg-[var(--bg-surface-soft)] text-[var(--text-muted)]'
+                          }`}
+                        >
+                          {lbl}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <ToggleRow
+                    title="Quebra de Linha no Terminal"
+                    description="Ajusta linhas longas de saída e tabelas automaticamente à largura do painel."
+                    checked={settings.terminalWrap}
+                    onChange={(val) => updateSettings({ terminalWrap: val })}
+                  />
+                  <ToggleRow
+                    title="Exibir Carimbo de Hora (Timestamps)"
+                    description="Adiciona o horário [HH:MM:SS] ao lado de comandos e saídas no terminal."
+                    checked={settings.terminalTimestamps}
+                    onChange={(val) => updateSettings({ terminalTimestamps: val })}
+                  />
+                  <ToggleRow
+                    title="Limpar Terminal Antes de Executar (F9)"
+                    description="Apaga comandos e logs anteriores automaticamente ao clicar no botão Executar."
+                    checked={settings.clearBeforeRun}
+                    onChange={(val) => updateSettings({ clearBeforeRun: val })}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* 4. COMPILADOR & EXECUÇÃO */}
+            {activeSection === 'compiler' && (
+              <div className="space-y-5">
+                <div>
+                  <h3 className="text-sm font-semibold text-[var(--text-main)]">
+                    Compilador & Otimizador
+                  </h3>
+                  <p className="text-[11.5px] text-[var(--text-muted)] mt-0.5">
+                    Controle a flag de otimização Constant Folding, análise em tempo real e limites do interpretador.
+                  </p>
+                </div>
+
+                {/* Constant Folding Card */}
+                <div className="p-4 rounded-[var(--ui-radius)] border border-[var(--border-subtle)] bg-[var(--bg-surface-soft)] flex items-start justify-between gap-4">
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <Zap className="w-4 h-4 text-amber-400" />
+                      <span className="font-semibold text-xs text-[var(--text-main)]">
+                        Constant Folding (--opt)
+                      </span>
+                      <span
+                        className={`text-[9.5px] px-1.5 py-0.2 rounded font-mono font-bold ${
+                          optimize
+                            ? 'bg-emerald-500/20 text-emerald-400'
+                            : 'bg-[var(--bg-subtle)] text-[var(--text-muted)]'
+                        }`}
+                      >
+                        {optimize ? 'ATIVADO' : 'DESATIVADO'}
+                      </span>
+                    </div>
+                    <p className="text-[11.5px] text-[var(--text-muted)] leading-relaxed">
+                      Avalia e dobra expressões constantes na AST em tempo de compilação (por exemplo,{' '}
+                      <code className="text-amber-400 font-mono">10 + 20 * 2</code> é reduzido diretamente para{' '}
+                      <code className="text-[var(--accent-secondary)] font-mono">50</code> antes da execução).
+                    </p>
+                  </div>
+
+                  <label className="relative inline-flex items-center cursor-pointer shrink-0 pt-0.5">
+                    <input
+                      type="checkbox"
+                      checked={optimize}
+                      onChange={(e) => onToggleOptimize(e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-9 h-5 bg-[var(--bg-subtle)] rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[var(--accent-primary)]" />
+                  </label>
+                </div>
+
+                {/* Análise Automática */}
+                <ToggleRow
+                  title="Análise Estática Automática ao Digitar"
+                  description="Atualiza erros léxicos, sintáticos, AST, CFG, Símbolos e Tokens automaticamente enquanto você digita."
+                  checked={settings.autoAnalyze}
+                  onChange={(val) => updateSettings({ autoAnalyze: val })}
+                />
+
+                {/* Debounce e Max Steps */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-[var(--text-main)]">
+                      Atraso da Análise (Debounce)
+                    </label>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {([250, 400, 800] as const).map((ms) => (
+                        <button
+                          key={ms}
+                          type="button"
+                          onClick={() => updateSettings({ analyzeDelay: ms })}
+                          className={`py-1.5 px-2 rounded-[var(--ui-radius)] border font-mono text-[11px] transition ${
+                            settings.analyzeDelay === ms
+                              ? 'border-[var(--accent-primary)] bg-[var(--bg-surface)] text-[var(--accent-primary)] font-semibold'
+                              : 'border-[var(--border-subtle)] bg-[var(--bg-surface-soft)] text-[var(--text-muted)]'
+                          }`}
+                        >
+                          {ms} ms
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-[var(--text-main)]">
+                      Limite de Passos em Runtime
+                    </label>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {(
+                        [
+                          [50000, '50 mil'],
+                          [100000, '100 mil'],
+                          [500000, '500 mil'],
+                        ] as const
+                      ).map(([steps, lbl]) => (
+                        <button
+                          key={steps}
+                          type="button"
+                          onClick={() => updateSettings({ maxSteps: steps })}
+                          className={`py-1.5 px-2 rounded-[var(--ui-radius)] border font-mono text-[11px] transition ${
+                            settings.maxSteps === steps
+                              ? 'border-[var(--accent-primary)] bg-[var(--bg-surface)] text-[var(--accent-primary)] font-semibold'
+                              : 'border-[var(--border-subtle)] bg-[var(--bg-surface-soft)] text-[var(--text-muted)]'
+                          }`}
+                        >
+                          {lbl}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* 5. ATALHOS */}
+            {activeSection === 'keymap' && (
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-sm font-semibold text-[var(--text-main)]">
+                    Atalhos de Teclado
+                  </h3>
+                  <p className="text-[11.5px] text-[var(--text-muted)] mt-0.5">
+                    Navegação rápida pelo editor, terminal, explorador e compilador MiniLang.
+                  </p>
+                </div>
+
+                <div className="border border-[var(--border-subtle)] rounded-[var(--ui-radius)] overflow-hidden bg-[var(--bg-surface-soft)]">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-[var(--bg-surface)] text-[var(--text-muted)] uppercase tracking-wider font-mono text-[10px] border-b border-[var(--border-subtle)]">
+                      <tr>
+                        <th className="py-2.5 px-3.5 font-semibold">Ação</th>
+                        <th className="py-2.5 px-3.5 font-semibold text-right">Atalho</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[var(--border-faint)] text-[var(--text-main)]">
+                      {[
+                        ['Executar Programa', 'F9 / Ctrl+Enter'],
+                        ['Paleta de Comandos', 'Ctrl+K / Ctrl+Shift+P'],
+                        ['Formatar Código', 'Shift+Alt+F'],
+                        ['Alternar Explorador', 'Alt+1'],
+                        ['Alternar Terminal', 'Alt+4'],
+                        ['Alternar Problemas', 'Alt+6'],
+                        ['Limpar Terminal', 'Ctrl+L'],
+                        ['Autocompletar no Terminal', 'Tab'],
+                        ['Histórico no Terminal', '↑ / ↓'],
+                        ['Abrir Configurações', 'Ctrl+,'],
+                        ['Parar Execução / Fechar Modal', 'Esc'],
+                      ].map(([label, keys]) => (
+                        <tr key={label} className="hover:bg-[var(--bg-subtle-soft)]">
+                          <td className="py-2 px-3.5">{label}</td>
+                          <td className="py-2 px-3.5 text-right font-mono text-[var(--text-muted)]">
+                            {keys}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Rodapé */}
+        <div className="h-12 px-5 bg-[var(--bg-surface)] border-t border-[var(--border-subtle)] flex items-center justify-between shrink-0">
+          <span className="text-[11px] text-[var(--text-muted)]">
+            Preferências salvas automaticamente no navegador
+          </span>
+
+          <button
+            onClick={onClose}
+            className="px-4 py-1.5 rounded-[var(--ui-radius)] bg-[var(--accent-primary)] hover:opacity-90 text-white transition font-medium text-xs shadow-sm"
+          >
+            Concluído
+          </button>
         </div>
       </div>
     </div>
@@ -403,479 +1216,15 @@ function IdeThemePreview({ themeId }: { themeId: ThemeId }) {
 export const SettingsDrawer: React.FC<SettingsDrawerProps> = ({
   isOpen,
   onClose,
-  optimize = false,
+  optimize,
   onToggleOptimize,
 }) => {
-  const { theme, setTheme, settings, updateSettings } = useTheme();
-  const [activeSection, setActiveSection] = useState<SettingsSection>('appearance');
-  const [hoveredTheme, setHoveredTheme] = useState<ThemeId | null>(null);
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        onClose();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
-
   if (!isOpen) return null;
-
-  const currentPreviewTheme = hoveredTheme || theme;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm select-none font-sans">
-      {/* JetBrains Settings Dialog Window */}
-      <div
-        className="w-full max-w-3xl h-[650px] bg-[var(--bg-panel)] border border-[var(--border-color)] rounded-[8px] shadow-2xl flex flex-col overflow-hidden text-xs text-[var(--text-main)] transition-colors"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* 1. Header do Diálogo de Configurações */}
-        <div className="h-10 px-4 bg-[var(--bg-header)] border-b border-[var(--border-color)] flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-2">
-            <SettingsIcon className="w-4 h-4 text-[var(--accent-primary)]" />
-            <span className="font-semibold text-sm text-[var(--text-main)]">Settings</span>
-          </div>
-
-          <button
-            onClick={onClose}
-            className="p-1 rounded-[4px] text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-subtle)] transition"
-            title="Close (Esc)"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-
-        {/* 2. Corpo com Split: Barra Lateral de Categorias à Esquerda + Conteúdo à Direita */}
-        <div className="flex-1 flex overflow-hidden">
-          {/* Navegação por Categorias à Esquerda estilo IntelliJ IDEA */}
-          <div className="w-56 bg-[var(--bg-app)] border-r border-[var(--border-color)] p-2 flex flex-col gap-0.5 shrink-0 overflow-y-auto">
-            <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">
-              IDE Settings
-            </div>
-
-            <button
-              onClick={() => setActiveSection('appearance')}
-              className={`flex items-center gap-2 px-2.5 py-1.5 rounded-[4px] text-xs transition text-left ${
-                activeSection === 'appearance'
-                  ? 'bg-[var(--accent-primary)]/20 text-[var(--accent-primary)] font-semibold border-l-2 border-[var(--accent-primary)]'
-                  : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-subtle)]'
-              }`}
-            >
-              <Palette className="w-3.5 h-3.5 text-[var(--accent-primary)]" />
-              <span>Appearance & Themes</span>
-            </button>
-
-            <button
-              onClick={() => setActiveSection('compiler')}
-              className={`flex items-center gap-2 px-2.5 py-1.5 rounded-[4px] text-xs transition text-left ${
-                activeSection === 'compiler'
-                  ? 'bg-[var(--accent-primary)]/20 text-[var(--accent-primary)] font-semibold border-l-2 border-[var(--accent-primary)]'
-                  : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-subtle)]'
-              }`}
-            >
-              <Zap className="w-3.5 h-3.5 text-amber-500" />
-              <span>Compiler & Optimizer</span>
-            </button>
-
-            <button
-              onClick={() => setActiveSection('font')}
-              className={`flex items-center gap-2 px-2.5 py-1.5 rounded-[4px] text-xs transition text-left ${
-                activeSection === 'font'
-                  ? 'bg-[var(--accent-primary)]/20 text-[var(--accent-primary)] font-semibold border-l-2 border-[var(--accent-primary)]'
-                  : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-subtle)]'
-              }`}
-            >
-              <Type className="w-3.5 h-3.5 text-emerald-500" />
-              <span>Editor &gt; Font</span>
-            </button>
-
-            <button
-              onClick={() => setActiveSection('general')}
-              className={`flex items-center gap-2 px-2.5 py-1.5 rounded-[4px] text-xs transition text-left ${
-                activeSection === 'general'
-                  ? 'bg-[var(--accent-primary)]/20 text-[var(--accent-primary)] font-semibold border-l-2 border-[var(--accent-primary)]'
-                  : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-subtle)]'
-              }`}
-            >
-              <Code2 className="w-3.5 h-3.5 text-amber-400" />
-              <span>Editor &gt; General</span>
-            </button>
-
-            <button
-              onClick={() => setActiveSection('keymap')}
-              className={`flex items-center gap-2 px-2.5 py-1.5 rounded-[4px] text-xs transition text-left ${
-                activeSection === 'keymap'
-                  ? 'bg-[var(--accent-primary)]/20 text-[var(--accent-primary)] font-semibold border-l-2 border-[var(--accent-primary)]'
-                  : 'text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-subtle)]'
-              }`}
-            >
-              <Keyboard className="w-3.5 h-3.5 text-purple-400" />
-              <span>Keymap (Shortcuts)</span>
-            </button>
-          </div>
-
-          {/* Painel de Conteúdo de Configuração à Direita */}
-          <div className="flex-1 bg-[var(--bg-panel)] p-5 overflow-y-auto">
-            {/* SEÇÃO 1: APARÊNCIA & TEMAS COM PRÉVIA VISUAL EM TEMPO REAL */}
-            {activeSection === 'appearance' && (
-              <div className="space-y-4">
-                <div>
-                  <h3 className="text-sm font-semibold text-[var(--text-main)]">
-                    Color Scheme & Appearance
-                  </h3>
-                  <p className="text-[11px] text-[var(--text-muted)] mt-0.5">
-                    Selecione um tema de cor para estilizar dinamicamente toda a interface da IDE e o editor.
-                  </p>
-                </div>
-
-                {/* PRÉVIA VISUAL DA IDE */}
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between text-[11px]">
-                    <span className="font-semibold text-[var(--text-main)]">
-                      Prévia em Tempo Real da IDE
-                    </span>
-                    <span className="text-[var(--text-muted)] font-mono text-[10px]">
-                      {hoveredTheme
-                        ? `Passando o cursor: ${THEMES.find((t) => t.id === hoveredTheme)?.name}`
-                        : `Ativo: ${THEMES.find((t) => t.id === theme)?.name}`}
-                    </span>
-                  </div>
-                  <IdeThemePreview themeId={currentPreviewTheme} />
-                </div>
-
-                {/* Grid de Seleção de Temas */}
-                <div className="pt-2">
-                  <div className="text-[11px] font-semibold text-[var(--text-main)] mb-2">
-                    Temas Disponíveis
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                    {THEMES.map((t) => {
-                      const isSelected = theme === t.id;
-                      const [cBg, cSurface, cPrimary, cAccent] = t.previewColors;
-
-                      return (
-                        <div
-                          key={t.id}
-                          onClick={() => setTheme(t.id as ThemeId)}
-                          onMouseEnter={() => setHoveredTheme(t.id as ThemeId)}
-                          onMouseLeave={() => setHoveredTheme(null)}
-                          className={`p-3 rounded-[6px] border text-left cursor-pointer transition flex flex-col justify-between ${
-                            isSelected
-                              ? 'border-[var(--accent-primary)] bg-[var(--bg-surface)] shadow-sm'
-                              : 'border-[var(--border-color)] bg-[var(--bg-app)]/50 hover:border-[var(--accent-primary)]/60 hover:bg-[var(--bg-app)]'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="font-semibold text-xs text-[var(--text-main)]">
-                              {t.name}
-                            </span>
-                            {isSelected && (
-                              <span className="w-4 h-4 rounded-full bg-[var(--accent-primary)] text-white flex items-center justify-center">
-                                <Check className="w-3 h-3 stroke-[3]" />
-                              </span>
-                            )}
-                          </div>
-
-                          <p className="text-[10.5px] text-[var(--text-muted)] line-clamp-1 mb-2">
-                            {t.subtitle}
-                          </p>
-
-                          {/* Swatches de Cores */}
-                          <div className="flex items-center gap-1.5">
-                            <div
-                              className="w-3.5 h-3.5 rounded-full border border-black/30 shadow-inner"
-                              style={{ backgroundColor: cBg }}
-                              title="Background"
-                            />
-                            <div
-                              className="w-3.5 h-3.5 rounded-full border border-black/30 shadow-inner"
-                              style={{ backgroundColor: cSurface }}
-                              title="Surface"
-                            />
-                            <div
-                              className="w-3.5 h-3.5 rounded-full border border-black/30 shadow-inner"
-                              style={{ backgroundColor: cPrimary }}
-                              title="Primary Accent"
-                            />
-                            <div
-                              className="w-3.5 h-3.5 rounded-full border border-black/30 shadow-inner"
-                              style={{ backgroundColor: cAccent }}
-                              title="Secondary Accent"
-                            />
-                            <span className="text-[10px] ml-auto font-mono text-[var(--text-muted)]">
-                              {t.isDark ? 'Dark' : 'Light'}
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* SEÇÃO 2: COMPILADOR & OTIMIZAÇÕES (CONSTANT FOLDING) */}
-            {activeSection === 'compiler' && (
-              <div className="space-y-4">
-                <div>
-                  <h3 className="text-sm font-semibold text-[var(--text-main)]">
-                    Compiler & Optimization Settings
-                  </h3>
-                  <p className="text-[11px] text-[var(--text-muted)] mt-0.5">
-                    Configure os passos de otimização de código intermediário e opções do analisador Arceus.
-                  </p>
-                </div>
-
-                {/* Opção Constant Folding */}
-                <div className="p-3.5 rounded-[6px] border border-[var(--border-color)] bg-[var(--bg-app)]/60 flex items-start justify-between gap-4">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <Zap className="w-4 h-4 text-amber-500" />
-                      <span className="font-semibold text-xs text-[var(--text-main)]">
-                        Constant Folding (--opt)
-                      </span>
-                      <span
-                        className={`text-[9.5px] px-1.5 py-0.2 rounded font-mono font-bold ${
-                          optimize
-                            ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                            : 'bg-zinc-700/30 text-zinc-400 border border-zinc-700/50'
-                        }`}
-                      >
-                        {optimize ? 'ATIVADO' : 'DESATIVADO'}
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-[var(--text-muted)] leading-relaxed">
-                      Avalia e dobra expressões aritméticas constantes em tempo de compilação na AST (por exemplo,{' '}
-                      <code className="text-amber-400 font-mono">10 + 20 * 2</code> é reduzido diretamente para{' '}
-                      <code className="text-emerald-400 font-mono">50</code> antes de gerar as instruções).
-                    </p>
-                    <p className="text-[10.5px] text-[var(--text-muted)]/80">
-                      Reduz o número de nós na árvore sintática, limpa o grafo de fluxo de controle (CFG) e acelera a execução no interpretador.
-                    </p>
-                  </div>
-
-                  <div className="pt-0.5 shrink-0">
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={optimize}
-                        onChange={(e) => {
-                          const val = e.target.checked;
-                          updateSettings({ optimize: val });
-                          onToggleOptimize?.(val);
-                        }}
-                        className="sr-only peer"
-                      />
-                      <div className="w-9 h-5 bg-[var(--bg-subtle)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[var(--accent-primary)]" />
-                    </label>
-                  </div>
-                </div>
-
-                {/* Informações adicionais do compilador */}
-                <div className="p-3 rounded-[6px] border border-[var(--border-color)] bg-[var(--bg-app)]/30 text-[11px] text-[var(--text-muted)] space-y-1">
-                  <div className="font-semibold text-[var(--text-main)]">Pipelines Suportados:</div>
-                  <ul className="list-disc list-inside space-y-0.5 text-[10.5px]">
-                    <li>Análise Léxica & Tabela de Tokens</li>
-                    <li>Parser Sintático & Geração da AST Hierárquica</li>
-                    <li>Tabela de Símbolos com Resolução Estática de Escopos</li>
-                    <li>CFG (Control Flow Graph) com blocos básicos</li>
-                  </ul>
-                </div>
-              </div>
-            )}
-
-            {/* SEÇÃO 3: FONTE DO EDITOR */}
-            {activeSection === 'font' && (
-              <div className="space-y-4">
-                <div>
-                  <h3 className="text-sm font-semibold text-[var(--text-main)]">Editor Font</h3>
-                  <p className="text-[11px] text-[var(--text-muted)] mt-0.5">
-                    Configure a tipografia principal para leitura e edição de código.
-                  </p>
-                </div>
-
-                {/* Família */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-[var(--text-main)]">Font Family</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {(['JetBrains Mono', 'Fira Code'] as EditorFontFamily[]).map((font) => (
-                      <button
-                        key={font}
-                        onClick={() => updateSettings({ fontFamily: font })}
-                        className={`p-2.5 rounded-[4px] border text-left transition ${
-                          settings.fontFamily === font
-                            ? 'border-[var(--accent-primary)] bg-[var(--bg-surface)] text-[var(--text-main)] font-semibold'
-                            : 'border-[var(--border-color)] bg-[var(--bg-app)]/60 text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-app)]'
-                        }`}
-                      >
-                        <div className="font-semibold text-xs">{font}</div>
-                        <div className="text-[11px] mt-1 opacity-70" style={{ fontFamily: font }}>
-                          func main() {'{'} a = 42; {'}'}
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Tamanho da Fonte */}
-                <div className="space-y-1.5 pt-2">
-                  <label className="text-xs font-semibold text-[var(--text-main)]">Font Size</label>
-                  <div className="grid grid-cols-4 gap-2">
-                    {(['12px', '14px', '16px', '18px'] as EditorFontSize[]).map((size) => (
-                      <button
-                        key={size}
-                        onClick={() => updateSettings({ fontSize: size })}
-                        className={`py-1.5 px-3 rounded-[4px] border font-mono text-center transition ${
-                          settings.fontSize === size
-                            ? 'border-[var(--accent-primary)] bg-[var(--bg-surface)] text-[var(--accent-primary)] font-bold'
-                            : 'border-[var(--border-color)] bg-[var(--bg-app)]/60 text-[var(--text-muted)] hover:text-[var(--text-main)] hover:bg-[var(--bg-app)]'
-                        }`}
-                      >
-                        {size}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Ligaduras */}
-                <div className="flex items-center justify-between p-3 rounded-[4px] border border-[var(--border-color)] bg-[var(--bg-app)]/60 mt-3">
-                  <div>
-                    <div className="font-semibold text-xs text-[var(--text-main)]">Enable Font Ligatures</div>
-                    <div className="text-[11px] text-[var(--text-muted)]">Combina operadores gráficos como -&gt;, ==, !=</div>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={settings.enableLigatures}
-                    onChange={(e) => updateSettings({ enableLigatures: e.target.checked })}
-                    className="w-4 h-4 accent-[var(--accent-primary)] rounded cursor-pointer"
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* SEÇÃO 4: EDITOR GENERAL */}
-            {activeSection === 'general' && (
-              <div className="space-y-4">
-                <div>
-                  <h3 className="text-sm font-semibold text-[var(--text-main)]">General Editor Settings</h3>
-                  <p className="text-[11px] text-[var(--text-muted)] mt-0.5">
-                    Configure quebra de linha, minimap e preferências visuais.
-                  </p>
-                </div>
-
-                {/* Word Wrap */}
-                <div className="flex items-center justify-between p-3 rounded-[4px] border border-[var(--border-color)] bg-[var(--bg-app)]/60">
-                  <div>
-                    <div className="font-semibold text-xs text-[var(--text-main)]">Soft-Wrap (Line Wrapping)</div>
-                    <div className="text-[11px] text-[var(--text-muted)]">Quebra linhas longas automaticamente sem rolagem horizontal</div>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={settings.editorLineWrapping}
-                    onChange={(e) => updateSettings({ editorLineWrapping: e.target.checked })}
-                    className="w-4 h-4 accent-[var(--accent-primary)] rounded cursor-pointer"
-                  />
-                </div>
-
-                {/* Minimap */}
-                <div className="flex items-center justify-between p-3 rounded-[4px] border border-[var(--border-color)] bg-[var(--bg-app)]/60">
-                  <div>
-                    <div className="font-semibold text-xs text-[var(--text-main)]">Show Code Minimap</div>
-                    <div className="text-[11px] text-[var(--text-muted)]">Exibe miniatura com visão geral do código à direita do editor</div>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={settings.showMinimap}
-                    onChange={(e) => updateSettings({ showMinimap: e.target.checked })}
-                    className="w-4 h-4 accent-[var(--accent-primary)] rounded cursor-pointer"
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* SEÇÃO 5: KEYMAP */}
-            {activeSection === 'keymap' && (
-              <div className="space-y-3">
-                <div>
-                  <h3 className="text-sm font-semibold text-[var(--text-main)]">Keymap</h3>
-                  <p className="text-[11px] text-[var(--text-muted)] mt-0.5">
-                    Atalhos de teclado compatíveis com o ecossistema JetBrains New UI.
-                  </p>
-                </div>
-
-                <div className="border border-[var(--border-color)] rounded-[4px] overflow-hidden bg-[var(--bg-app)]">
-                  <table className="w-full text-left text-xs">
-                    <thead className="bg-[var(--bg-header)] text-[var(--text-muted)] uppercase tracking-wider font-mono text-[10px] border-b border-[var(--border-color)]">
-                      <tr>
-                        <th className="py-2 px-3 font-semibold">Action</th>
-                        <th className="py-2 px-3 font-semibold text-right">Shortcut</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[var(--border-color)]/50 text-[var(--text-main)]">
-                      <tr className="hover:bg-[var(--bg-subtle)]/50">
-                        <td className="py-2 px-3">Run Program</td>
-                        <td className="py-2 px-3 text-right font-mono text-[var(--text-muted)]">F9 / Ctrl+Enter</td>
-                      </tr>
-                      <tr className="hover:bg-[var(--bg-subtle)]/50">
-                        <td className="py-2 px-3">Reformat Code</td>
-                        <td className="py-2 px-3 text-right font-mono text-[var(--text-muted)]">Shift+Alt+F / Ctrl+Alt+L</td>
-                      </tr>
-                      <tr className="hover:bg-[var(--bg-subtle)]/50">
-                        <td className="py-2 px-3">Search Everywhere</td>
-                        <td className="py-2 px-3 text-right font-mono text-[var(--text-muted)]">Double Shift / Ctrl+K</td>
-                      </tr>
-                      <tr className="hover:bg-[var(--bg-subtle)]/50">
-                        <td className="py-2 px-3">Toggle Project Window</td>
-                        <td className="py-2 px-3 text-right font-mono text-[var(--text-muted)]">Alt+1</td>
-                      </tr>
-                      <tr className="hover:bg-[var(--bg-subtle)]/50">
-                        <td className="py-2 px-3">Toggle Run / Terminal</td>
-                        <td className="py-2 px-3 text-right font-mono text-[var(--text-muted)]">Alt+4</td>
-                      </tr>
-                      <tr className="hover:bg-[var(--bg-subtle)]/50">
-                        <td className="py-2 px-3">Toggle Problems</td>
-                        <td className="py-2 px-3 text-right font-mono text-[var(--text-muted)]">Alt+6</td>
-                      </tr>
-                      <tr className="hover:bg-[var(--bg-subtle)]/50">
-                        <td className="py-2 px-3">Clear Console</td>
-                        <td className="py-2 px-3 text-right font-mono text-[var(--text-muted)]">Ctrl+L</td>
-                      </tr>
-                      <tr className="hover:bg-[var(--bg-subtle)]/50">
-                        <td className="py-2 px-3">Open Settings</td>
-                        <td className="py-2 px-3 text-right font-mono text-[var(--text-muted)]">Ctrl+,</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* 3. Rodapé Estilo JetBrains: Botões OK / Cancel / Apply */}
-        <div className="h-11 px-4 bg-[var(--bg-header)] border-t border-[var(--border-color)] flex items-center justify-between shrink-0">
-          <span className="text-[11px] text-[var(--text-muted)]">
-            Arceus Web IDE • JetBrains Edition
-          </span>
-
-          <div className="flex items-center gap-2">
-            <button
-              onClick={onClose}
-              className="px-3.5 py-1 rounded-[4px] bg-[var(--bg-subtle)] hover:opacity-90 text-[var(--text-main)] transition font-medium text-xs"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={onClose}
-              className="px-4 py-1 rounded-[4px] bg-[var(--accent-primary)] hover:opacity-90 text-white transition font-medium text-xs shadow-sm"
-            >
-              OK
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+    <SettingsDialogContent
+      onClose={onClose}
+      optimize={optimize}
+      onToggleOptimize={onToggleOptimize}
+    />
   );
 };
